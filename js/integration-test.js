@@ -90,6 +90,31 @@ async function run() {
   assert(stepsAfter === 8, 'debería re-renderizar con 8 pasos tras cambiar el selector');
   console.log('OK: cambio de longitud de patrón a', stepsAfter, 'pasos funciona');
 
+  // --- Edición manual: click en un paso para activar/desactivar ---
+  doc.getElementById('steps').value = '16';
+  seedInput.value = '42';
+  doc.getElementById('btnGenerate').click();
+
+  const stepEls = Array.from(stepGrid.querySelectorAll('.step'));
+  const restIndex = stepEls.findIndex((el) => el.classList.contains('step--rest'));
+  assert(restIndex !== -1, 'debería existir al menos un paso inactivo para probar el toggle');
+
+  const messagesBeforeToggle = sentMessages.length;
+  stepEls[restIndex].dispatchEvent(new window.Event('click', { bubbles: true }));
+
+  const stepGridAfter = doc.getElementById('stepGrid'); // se re-renderizó, tomamos referencias nuevas
+  const stepsAfterToggle = Array.from(stepGridAfter.querySelectorAll('.step'));
+  assert(!stepsAfterToggle[restIndex].classList.contains('step--rest'), 'el paso debería quedar activo tras el click');
+  const noteTextAfterOn = stepsAfterToggle[restIndex].querySelector('.step__note').textContent;
+  assert(noteTextAfterOn !== '--', 'un paso recién activado a mano debería mostrar una nota (tónica por defecto), mostró: ' + noteTextAfterOn);
+  assert(sentMessages.length === messagesBeforeToggle, 'editar un paso a mano no debería, por sí solo, enviar mensajes MIDI');
+  console.log('OK: click en un paso inactivo lo activa y le asigna la tónica (' + noteTextAfterOn + '), sin efectos MIDI colaterales');
+
+  stepsAfterToggle[restIndex].dispatchEvent(new window.Event('click', { bubbles: true }));
+  const stepsAfterToggleOff = Array.from(doc.getElementById('stepGrid').querySelectorAll('.step'));
+  assert(stepsAfterToggleOff[restIndex].classList.contains('step--rest'), 'un segundo click sobre el mismo paso debería volver a desactivarlo');
+  console.log('OK: un segundo click vuelve a desactivar el paso');
+
   console.log('\nTODOS LOS TESTS PASARON ✔');
 }
 

@@ -52,6 +52,7 @@
 
     let stepEls = []; // referencias a los elementos de paso actualmente renderizados
     let highlightTimeouts = [];
+    let stepClickHandler = null; // callback(stepIndex) provisto por app.js
 
     // --- Poblado de selects estáticos (independientes del Pattern) ---
 
@@ -171,6 +172,10 @@
 
         const stepEl = document.createElement('div');
         stepEl.className = 'step' + (isOnbeat ? ' step--onbeat' : ' step--offbeat') + (active ? '' : ' step--rest');
+        stepEl.title = 'Paso ' + (i + 1) + ' — click para activar/desactivar';
+        stepEl.addEventListener('click', () => {
+          if (stepClickHandler) stepClickHandler(i);
+        });
 
         const number = document.createElement('div');
         number.className = 'step__number';
@@ -247,6 +252,7 @@
       renderPattern,
       scheduleStepHighlight,
       setPlayingState,
+      setStepClickHandler(fn) { stepClickHandler = fn; },
     };
   }
 

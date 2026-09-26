@@ -22,6 +22,33 @@
     sequencer.setPattern(currentPattern);
   }
 
+  /**
+   * Prende/apaga un paso a mano. Muta el mismo objeto Pattern (no crea uno
+   * nuevo), así el scheduler -que ya tiene una referencia a ese objeto- ve
+   * el cambio de inmediato, incluso con el patrón sonando, sin necesidad
+   * de reiniciar la posición de reproducción ni disparar un panic.
+   */
+  function toggleStep(index) {
+    if (!currentPattern) return;
+    const p = currentPattern;
+    p.active[index] = !p.active[index];
+
+    if (p.active[index]) {
+      // Si el paso no tenía nota asignada (estaba vacío desde que se
+      // generó), le damos un valor de partida razonable: la tónica.
+      if (p.note[index] == null) {
+        p.note[index] = window.BG.Scales.rootMidi(p.root, p.octave);
+      }
+      if (!p.velocity[index]) p.velocity[index] = 100;
+      if (!p.gate[index]) p.gate[index] = 0.7;
+    } else {
+      p.velocity[index] = 0;
+      p.gate[index] = 0;
+    }
+
+    ui.renderPattern(p);
+  }
+
   function randomSeed() {
     const newSeed = Math.floor(Math.random() * 1_000_000);
     ui.setSeed(newSeed);
@@ -86,6 +113,7 @@
     window.addEventListener('beforeunload', () => midi.panic());
 
     sequencer.onStepScheduled = (stepIndex, timeMs) => ui.scheduleStepHighlight(stepIndex, timeMs);
+    ui.setStepClickHandler(toggleStep);
   }
 
   function init() {

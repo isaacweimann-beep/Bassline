@@ -1,0 +1,454 @@
+/* -------------------------------------------------------------------- */
+/* Tokens                                                                */
+/* -------------------------------------------------------------------- */
+:root {
+  --bg: #17151a;
+  --panel: #211f26;
+  --panel-raised: #2b2830;
+  --line: #3a3742;
+  --line-soft: #2d2a33;
+
+  --text: #ede8e2;
+  --text-muted: #948d9c;
+  --text-faint: #635d6b;
+
+  --amber: #e8a33d;
+  --amber-dim: #7a5a2c;
+  --teal: #4fa8a0;
+  --teal-dim: #2f5450;
+  --red: #d9614f;
+
+  --font-label: 'Space Grotesk', 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+
+  --radius: 3px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-label);
+  font-size: 14px;
+  line-height: 1.4;
+  padding-bottom: 3rem;
+}
+
+/* -------------------------------------------------------------------- */
+/* Topbar                                                                */
+/* -------------------------------------------------------------------- */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.brand {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: lowercase;
+  color: var(--text);
+}
+
+.brand span {
+  color: var(--amber);
+}
+
+.midi-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.midi-status__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-faint);
+  box-shadow: 0 0 0 3px transparent;
+}
+
+.midi-status__dot--ok {
+  background: var(--teal);
+  box-shadow: 0 0 8px 1px var(--teal);
+}
+
+.midi-status__dot--warn {
+  background: var(--amber);
+  box-shadow: 0 0 8px 1px var(--amber-dim);
+}
+
+.midi-status__dot--error {
+  background: var(--red);
+  box-shadow: 0 0 8px 1px var(--red);
+}
+
+/* -------------------------------------------------------------------- */
+/* Layout general                                                        */
+/* -------------------------------------------------------------------- */
+.rack {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.rack__columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+
+@media (max-width: 760px) {
+  .rack__columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* -------------------------------------------------------------------- */
+/* Panel ("módulo de rack")                                              */
+/* -------------------------------------------------------------------- */
+.panel {
+  position: relative;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1.5rem 1.25rem 1.25rem;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02), inset 0 0 24px rgba(0, 0, 0, 0.18);
+}
+
+/* "Placa" con el nombre del módulo, como serigrafía en un rack real */
+.panel::before {
+  content: attr(data-name);
+  position: absolute;
+  top: 0;
+  left: 0.9rem;
+  transform: translateY(-50%);
+  background: var(--panel);
+  padding: 0 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  border: 1px solid var(--line);
+  border-radius: 2px;
+}
+
+/* -------------------------------------------------------------------- */
+/* Controles                                                             */
+/* -------------------------------------------------------------------- */
+.control-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 1rem;
+}
+
+.control-row--seed {
+  margin-top: 1.25rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.field--grow {
+  flex: 1;
+  min-width: 160px;
+}
+
+.field--seed {
+  min-width: 120px;
+}
+
+.field__label {
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.field__select,
+.field__number,
+.field__text {
+  background: var(--panel-raised);
+  border: 1px solid var(--line);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: var(--radius);
+  min-width: 0;
+}
+
+.field__number {
+  width: 4.5rem;
+}
+
+.field__unit {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-faint);
+  margin-left: -0.5rem;
+  align-self: center;
+}
+
+.field__select:focus-visible,
+.field__number:focus-visible,
+.field__text:focus-visible,
+input[type='range']:focus-visible,
+.btn:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 2px;
+}
+
+.range-pair {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.range-pair__sep {
+  color: var(--text-faint);
+  font-size: 0.75rem;
+}
+
+/* -------------------------------------------------------------------- */
+/* Botones                                                               */
+/* -------------------------------------------------------------------- */
+.btn {
+  background: var(--panel-raised);
+  border: 1px solid var(--line);
+  color: var(--text);
+  font-family: var(--font-label);
+  font-weight: 500;
+  font-size: 0.85rem;
+  padding: 0.6rem 1.1rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.btn:hover {
+  border-color: var(--text-muted);
+}
+
+.btn--primary {
+  background: var(--amber);
+  border-color: var(--amber);
+  color: #1c1408;
+  font-weight: 700;
+}
+
+.btn--primary:hover {
+  border-color: var(--amber);
+  filter: brightness(1.08);
+}
+
+.btn--active {
+  background: var(--teal);
+  border-color: var(--teal);
+  color: #06201d;
+}
+
+.btn--accent {
+  border-color: var(--amber);
+  color: var(--amber);
+}
+
+.btn--accent:hover {
+  background: rgba(232, 163, 61, 0.08);
+}
+
+.btn--ghost {
+  background: transparent;
+}
+
+.btn--danger {
+  color: var(--red);
+  margin-left: auto;
+}
+
+.btn--danger:hover {
+  border-color: var(--red);
+}
+
+/* -------------------------------------------------------------------- */
+/* Generator: knobs (implementados como sliders verticales simples)      */
+/* -------------------------------------------------------------------- */
+.knob-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+@media (max-width: 480px) {
+  .knob-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.knob-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  background: var(--panel-raised);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+  padding: 0.75rem 0.75rem 0.6rem;
+}
+
+.knob-field input[type='range'] {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 4px;
+  background: var(--line);
+  border-radius: 2px;
+  margin: 0.35rem 0;
+}
+
+.knob-field input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--amber);
+  cursor: pointer;
+  border: 2px solid #1c1408;
+}
+
+.knob-field input[type='range']::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--amber);
+  cursor: pointer;
+  border: 2px solid #1c1408;
+}
+
+.field__value {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--amber);
+  align-self: flex-end;
+}
+
+/* -------------------------------------------------------------------- */
+/* Step sequencer                                                        */
+/* -------------------------------------------------------------------- */
+.panel--steps {
+  overflow-x: auto;
+}
+
+.step-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--steps, 16), minmax(38px, 1fr));
+  gap: 3px;
+  min-width: 560px;
+}
+
+.step-grid__empty {
+  grid-column: 1 / -1;
+  color: var(--text-faint);
+  font-size: 0.85rem;
+  margin: 0.5rem 0;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.5rem 0.15rem 0.6rem;
+  border-radius: 2px;
+  background: var(--panel-raised);
+  border: 1px solid var(--line-soft);
+}
+
+.step--onbeat {
+  border-top: 2px solid var(--amber-dim);
+}
+
+.step--offbeat {
+  border-top: 2px solid var(--teal-dim);
+}
+
+.step--rest {
+  opacity: 0.35;
+}
+
+.step--playing {
+  background: rgba(232, 163, 61, 0.14);
+  border-color: var(--amber);
+}
+
+.step {
+  cursor: pointer;
+  user-select: none;
+}
+
+.step:hover {
+  border-color: var(--text-muted);
+}
+
+.step__number {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--text-faint);
+}
+
+.step__note {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.step__vel {
+  width: 10px;
+  height: 42px;
+  background: var(--line-soft);
+  border-radius: 2px;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+}
+
+.step__vel-fill {
+  width: 100%;
+  background: var(--teal);
+}
+
+.step--onbeat .step__vel-fill {
+  background: var(--amber);
+}
+
+.step__accent {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.step__accent--on {
+  background: var(--red);
+  box-shadow: 0 0 6px 1px var(--red);
+}
