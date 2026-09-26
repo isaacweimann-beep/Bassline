@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Bassline Generator — MIDI</title>
+<link rel="stylesheet" href="style.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+<header class="topbar">
+  <h1 class="brand">bassline<span>generator</span></h1>
+  <div class="midi-status" id="midiStatus">
+    <span class="midi-status__dot" id="midiStatusDot"></span>
+    <span id="midiStatusText">buscando MIDI…</span>
+  </div>
+</header>
+
+<main class="rack">
+
+  <!-- TRANSPORT -->
+  <section class="panel panel--transport" data-name="transport">
+    <div class="control-row">
+      <button id="btnPlay" class="btn btn--primary">Play</button>
+      <button id="btnStop" class="btn">Stop</button>
+
+      <label class="field">
+        <span class="field__label">tempo</span>
+        <input type="number" id="tempo" class="field__number" min="20" max="300" value="120" />
+        <span class="field__unit">bpm</span>
+      </label>
+
+      <label class="field field--grow">
+        <span class="field__label">midi out</span>
+        <select id="midiOutput" class="field__select"></select>
+      </label>
+
+      <label class="field">
+        <span class="field__label">canal</span>
+        <select id="midiChannel" class="field__select"></select>
+      </label>
+
+      <button id="btnPanic" class="btn btn--ghost btn--danger" title="Apagar todas las notas">panic</button>
+    </div>
+  </section>
+
+  <div class="rack__columns">
+
+    <!-- MUSICAL -->
+    <section class="panel panel--musical" data-name="musical">
+      <label class="field">
+        <span class="field__label">tónica</span>
+        <select id="rootNote" class="field__select"></select>
+      </label>
+
+      <label class="field">
+        <span class="field__label">escala</span>
+        <select id="scale" class="field__select"></select>
+      </label>
+
+      <label class="field">
+        <span class="field__label">octava base</span>
+        <select id="octave" class="field__select"></select>
+      </label>
+
+      <label class="field">
+        <span class="field__label">rango de octavas</span>
+        <span class="range-pair">
+          <select id="octaveMin" class="field__select"></select>
+          <span class="range-pair__sep">a</span>
+          <select id="octaveMax" class="field__select"></select>
+        </span>
+      </label>
+
+      <label class="field">
+        <span class="field__label">pasos</span>
+        <select id="steps" class="field__select"></select>
+      </label>
+
+      <label class="field">
+        <span class="field__label">rate</span>
+        <select id="rate" class="field__select"></select>
+      </label>
+    </section>
+
+    <!-- GENERATOR -->
+    <section class="panel panel--generator" data-name="generator">
+      <div class="knob-row">
+        <label class="knob-field">
+          <span class="field__label">density</span>
+          <input type="range" id="density" min="0" max="100" value="75" />
+          <span class="field__value" id="densityValue">75%</span>
+        </label>
+
+        <label class="knob-field">
+          <span class="field__label">complexity</span>
+          <input type="range" id="complexity" min="0" max="100" value="45" />
+          <span class="field__value" id="complexityValue">45%</span>
+        </label>
+
+        <label class="knob-field">
+          <span class="field__label">rests</span>
+          <input type="range" id="rests" min="0" max="100" value="10" />
+          <span class="field__value" id="restsValue">10%</span>
+        </label>
+
+        <label class="knob-field">
+          <span class="field__label">accent</span>
+          <input type="range" id="accentAmount" min="0" max="100" value="25" />
+          <span class="field__value" id="accentAmountValue">25%</span>
+        </label>
+      </div>
+
+      <div class="control-row control-row--seed">
+        <label class="field field--grow">
+          <span class="field__label">seed</span>
+          <input type="text" id="seed" class="field__text" value="12345" />
+        </label>
+        <button id="btnNewSeed" class="btn btn--ghost" title="Nuevo seed aleatorio">dice</button>
+        <button id="btnGenerate" class="btn btn--accent">Generate</button>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- STEP SEQUENCER -->
+  <section class="panel panel--steps" data-name="pattern">
+    <div class="step-grid" id="stepGrid">
+      <p class="step-grid__empty" id="stepGridEmpty">Presioná «Generate» para crear un patrón.</p>
+    </div>
+  </section>
+
+</main>
+
+<script src="js/scales.js"></script>
+<script src="js/rng.js"></script>
+<script src="js/pattern.js"></script>
+<script src="js/generator.js"></script>
+<script src="js/midi.js"></script>
+<script src="js/sequencer.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
