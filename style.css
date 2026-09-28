@@ -616,3 +616,12 @@ input[type='range']:focus-visible,
   font-size: 0.72rem;
   color: var(--text-faint);
 }
+
+
+.subhead {
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 1.1rem 0 -0.35rem;
+}

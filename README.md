@@ -33,6 +33,22 @@ navegador: el sonido sale siempre de tu hardware.
 - Se puede editar con el patrón sonando: el cambio se escucha en la siguiente pasada.
 - **lock rhythm / lock pitch** (botones violetas): con uno activo, "Generate" conserva esa capa del patrón actual y solo regenera la otra. Si cambiás la cantidad de pasos, los locks se ignoran (los largos no coinciden).
 
+## Variator
+
+Hace que la densidad varíe sola a lo largo del patrón, con una forma (**shape**) y una cantidad (**amount**, bipolar -100% a +100%):
+
+- **none**: recto, sin variación (default).
+- **ramp up**: empieza vacío y se va llenando hacia el final.
+- **ramp down**: empieza lleno y se va vaciando.
+- **wave**: sube, baja y vuelve a subir (un ciclo completo).
+- **pulse**: la primera mitad del patrón suena mucho menos que la segunda (o al revés, con amount negativo).
+
+Con amount en 0 no cambia nada, sea cual sea el shape elegido. Reacciona en vivo. A diferencia de Reason, hay un solo Variator para todo el patrón (no uno separado para onbeat y otro para offbeat) — si en la práctica hace falta esa separación, se puede sumar después sin romper nada de esto.
+
+## Pesos de escala
+
+Cuatro sliders (root / fifth / third / other) controlan qué tan seguido aparece cada tipo de grado en la línea generada. Son pesos relativos, no un porcentaje: no hace falta que sumen 100, el motor normaliza solo. Por defecto están en 40/20/15/25 (bastante tónica y quinta, algo de tercera, el resto repartido entre los demás grados de la escala). Reaccionan en vivo igual que density/complexity.
+
 ## Regeneración en vivo
 
 Al mover un slider del Generator (density, complexity, rests, accent), cambiar el seed, o cambiar un selector musical (tónica, escala, octava, rango, pasos, rate), el patrón se regenera al instante, sin apretar Generate. Con el patrón sonando el cambio se aplica en caliente: no se reinicia la posición ni se cortan las notas.

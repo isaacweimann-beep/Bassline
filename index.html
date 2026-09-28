@@ -120,6 +120,43 @@
         </label>
       </div>
 
+      <div class="subhead">pitch weights</div>
+      <div class="knob-row">
+        <label class="knob-field">
+          <span class="field__label">root</span>
+          <input type="range" id="weightRoot" min="0" max="100" value="40" title="Peso relativo (no hace falta que sumen 100)" />
+          <span class="field__value" id="weightRootValue">40</span>
+        </label>
+        <label class="knob-field">
+          <span class="field__label">fifth</span>
+          <input type="range" id="weightFifth" min="0" max="100" value="20" title="Peso relativo (no hace falta que sumen 100)" />
+          <span class="field__value" id="weightFifthValue">20</span>
+        </label>
+        <label class="knob-field">
+          <span class="field__label">third</span>
+          <input type="range" id="weightThird" min="0" max="100" value="15" title="Peso relativo (no hace falta que sumen 100)" />
+          <span class="field__value" id="weightThirdValue">15</span>
+        </label>
+        <label class="knob-field">
+          <span class="field__label">other</span>
+          <input type="range" id="weightOther" min="0" max="100" value="25" title="Peso relativo (no hace falta que sumen 100)" />
+          <span class="field__value" id="weightOtherValue">25</span>
+        </label>
+      </div>
+
+      <div class="subhead">variator</div>
+      <div class="control-row">
+        <label class="field">
+          <span class="field__label">shape</span>
+          <select id="variationShape" class="field__select"></select>
+        </label>
+        <label class="field field--grow">
+          <span class="field__label">amount</span>
+          <input type="range" id="variationAmount" min="-100" max="100" value="0" />
+          <span class="field__value" id="variationAmountValue">0%</span>
+        </label>
+      </div>
+
       <div class="control-row control-row--locks">
         <button id="btnLockRhythm" type="button" class="btn btn--ghost btn--toggle" aria-pressed="false">lock rhythm</button>
         <button id="btnLockPitch" type="button" class="btn btn--ghost btn--toggle" aria-pressed="false">lock pitch</button>
