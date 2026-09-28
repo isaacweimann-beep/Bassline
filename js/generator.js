@@ -36,7 +36,11 @@
    *   previousPattern (Pattern anterior, opcional, requerido si se usa lock)
    */
   function generate(params) {
-    const rng = RNG.createRng(params.seed);
+    // Ritmo y pitch usan generadores aleatorios INDEPENDIENTES (derivados del
+    // mismo seed). Así, cambiar algo del ritmo no altera la curva de pitch
+    // (ni al revés), con o sin locks.
+    const rhythmRng = RNG.createRng(params.seed + ':rhythm');
+    const pitchRng = RNG.createRng(params.seed + ':pitch');
     const pattern = PatternModule.createEmptyPattern(params);
 
     const prev = params.previousPattern;
@@ -47,13 +51,13 @@
     if (params.lockRhythm && canReuse) {
       copyRhythm(prev, pattern);
     } else {
-      generateRhythm(pattern, params, rng);
+      generateRhythm(pattern, params, rhythmRng);
     }
 
     if (params.lockPitch && canReuse) {
       copyPitch(prev, pattern);
     } else {
-      generatePitch(pattern, params, rng);
+      generatePitch(pattern, params, pitchRng);
     }
 
     return pattern;
@@ -100,19 +104,27 @@
       const baseProb = isOnbeat ? density : density * complexity;
       const finalProb = clamp01(baseProb * (1 - rests));
 
-      const active = rng() < finalProb;
+      // Se consumen SIEMPRE las mismas 4 tiradas por paso (esté activo o no).
+      // Así, mover un slider solo cambia umbrales y no "corre" el resto de las
+      // tiradas: el patrón evoluciona de forma continua en vez de saltar.
+      const rActive = rng();
+      const rAccent = rng();
+      const rVelocity = rng();
+      const rGate = rng();
+
+      const active = rActive < finalProb;
       pattern.active[i] = active;
 
       if (active) {
-        const accented = rng() < accentAmount;
+        const accented = rAccent < accentAmount;
         pattern.accent[i] = accented;
         pattern.velocity[i] = clampMidi127(
-          velocityBase + (accented ? velocityAccentBoost : 0) + RNG.randInt(rng, -6, 6)
+          velocityBase + (accented ? velocityAccentBoost : 0) + (Math.floor(rVelocity * 13) - 6)
         );
         // Gate más largo en notas acentuadas/onbeat, más corto en offbeat,
         // con algo de variación para que no suene mecánico.
         const baseGate = isOnbeat ? 0.85 : 0.6;
-        pattern.gate[i] = clampGate(baseGate + (rng() * 0.2 - 0.1));
+        pattern.gate[i] = clampGate(baseGate + (rGate * 0.2 - 0.1));
       } else {
         pattern.velocity[i] = 0;
         pattern.gate[i] = 0;

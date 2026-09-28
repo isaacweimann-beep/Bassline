@@ -57,6 +57,20 @@
       currentStep = 0;
     }
 
+    /**
+     * Reemplaza el patrón "en caliente": NO reinicia la posición ni dispara
+     * panic. Se usa para la regeneración en vivo (mover un slider mientras
+     * suena). Si la cantidad de pasos cambia, la posición actual ya no tiene
+     * sentido y se cae al reinicio normal de setPattern().
+     */
+    function replacePattern(newPattern) {
+      if (!pattern || pattern.steps !== newPattern.steps) {
+        setPattern(newPattern);
+        return;
+      }
+      pattern = newPattern;
+    }
+
     function setTempo(newBpm) {
       bpm = Math.max(20, Math.min(300, newBpm));
     }
@@ -119,6 +133,7 @@
 
     return {
       setPattern,
+      replacePattern,
       setTempo,
       setSwing,
       start,

@@ -107,6 +107,7 @@
     };
 
     let stepEls = []; // referencias a los elementos de paso actualmente renderizados
+    let highlightedIndex = -1; // paso que está sonando (para re-aplicar el resaltado tras un re-render)
     let highlightTimeouts = [];
     let stepClickHandler = null; // callback(stepIndex) provisto por app.js
 
@@ -224,7 +225,6 @@
     // --- Render del step sequencer (solo visual en V0.1, sin edición) ---
 
     function renderPattern(pattern) {
-      clearHighlightTimeouts();
       dom.stepGrid.innerHTML = '';
       dom.stepGrid.style.setProperty('--steps', pattern.steps);
       stepEls = [];
@@ -317,6 +317,12 @@
         stepEls.push(stepEl);
       }
 
+      // Tras un re-render (p.ej. regeneración en vivo mientras suena) los
+      // elementos son nuevos: volvemos a marcar el paso que está sonando.
+      if (highlightedIndex >= 0 && stepEls[highlightedIndex]) {
+        stepEls[highlightedIndex].classList.add('step--playing');
+      }
+
       dom.stepGridEmpty.style.display = 'none';
     }
 
@@ -329,11 +335,15 @@
      */
     function scheduleStepHighlight(stepIndex, timeMs) {
       const delay = Math.max(0, timeMs - performance.now());
-      const id = setTimeout(() => highlightStep(stepIndex), delay);
+      const id = setTimeout(() => {
+        highlightTimeouts = highlightTimeouts.filter((t) => t !== id);
+        highlightStep(stepIndex);
+      }, delay);
       highlightTimeouts.push(id);
     }
 
     function highlightStep(stepIndex) {
+      highlightedIndex = stepIndex;
       stepEls.forEach((el) => el.classList.remove('step--playing'));
       const el = stepEls[stepIndex];
       if (el) el.classList.add('step--playing');
@@ -342,6 +352,7 @@
     function clearHighlightTimeouts() {
       highlightTimeouts.forEach((id) => clearTimeout(id));
       highlightTimeouts = [];
+      highlightedIndex = -1;
       stepEls.forEach((el) => el.classList.remove('step--playing'));
     }
 

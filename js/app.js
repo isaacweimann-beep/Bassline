@@ -15,12 +15,44 @@
 
   let currentPattern = null;
 
-  function generateAndLoad() {
+  function buildPattern() {
     const params = ui.readGeneratorParams();
-    params.previousPattern = currentPattern;
-    currentPattern = window.BG.Generator.generate(params);
+    params.previousPattern = currentPattern; // para que los locks puedan reutilizarlo
+    return window.BG.Generator.generate(params);
+  }
+
+  /** Generate explícito: patrón nuevo, la reproducción vuelve al paso 1. */
+  function generateAndLoad() {
+    currentPattern = buildPattern();
     ui.renderPattern(currentPattern);
     sequencer.setPattern(currentPattern);
+  }
+
+  /**
+   * Regeneración en vivo (al mover un control): igual que Generate, pero el
+   * patrón se reemplaza "en caliente", sin reiniciar la posición ni cortar
+   * las notas que están sonando.
+   */
+  function regenerateLive() {
+    currentPattern = buildPattern();
+    ui.renderPattern(currentPattern);
+    sequencer.replacePattern(currentPattern);
+  }
+
+  // Un slider dispara decenas de eventos por segundo: los agrupamos para
+  // regenerar como mucho una vez por frame de animación.
+  let liveRegenPending = false;
+  const nextFrame = window.requestAnimationFrame
+    ? (fn) => window.requestAnimationFrame(fn)
+    : (fn) => setTimeout(fn, 16);
+
+  function scheduleLiveRegenerate() {
+    if (liveRegenPending) return;
+    liveRegenPending = true;
+    nextFrame(() => {
+      liveRegenPending = false;
+      regenerateLive();
+    });
   }
 
   /**
@@ -95,6 +127,12 @@
     ui.bindKnobDisplays();
     ui.bindToggleButton(ui.dom.btnLockRhythm);
     ui.bindToggleButton(ui.dom.btnLockPitch);
+
+    // Regeneración en vivo: sliders del generator, selects musicales y seed.
+    [ui.dom.density, ui.dom.complexity, ui.dom.rests, ui.dom.accentAmount, ui.dom.seed]
+      .forEach((el) => el.addEventListener('input', scheduleLiveRegenerate));
+    [ui.dom.rootNote, ui.dom.scale, ui.dom.octave, ui.dom.octaveMin, ui.dom.octaveMax, ui.dom.steps, ui.dom.rate]
+      .forEach((el) => el.addEventListener('change', scheduleLiveRegenerate));
 
     ui.dom.btnGenerate.addEventListener('click', generateAndLoad);
     ui.dom.btnNewSeed.addEventListener('click', () => {

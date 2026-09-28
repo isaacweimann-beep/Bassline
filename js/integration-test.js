@@ -269,6 +269,71 @@ async function run() {
   assert(Math.abs((swung[2] - swung[0]) - stepMs * 2) < 0.01, 'cada par de pasos debería seguir durando lo mismo (250ms): el swing no acumula deriva');
   console.log('OK: con swing 100% el offbeat se retrasa (' + evenToOdd.toFixed(1) + ' ms / ' + oddToEven.toFixed(1) + ' ms) y el par completo sigue durando 250 ms');
 
+  // --- Regeneración en vivo: mover un control actualiza el patrón sin apretar Generate ---
+  function setSlider(id, value) {
+    const el = doc.getElementById(id);
+    el.value = String(value);
+    el.dispatchEvent(new window.Event('input', { bubbles: true }));
+  }
+  const activeCount = () => snapshotSteps().filter((s) => s.active).length;
+
+  seedInput.value = '4242';
+  setSlider('complexity', 100);
+  setSlider('rests', 0);
+  setSlider('density', 0);
+  await wait(60);
+  assert(activeCount() === 0, 'con density 0 no debería sonar ningún paso, sonaron ' + activeCount());
+  setSlider('density', 100);
+  await wait(60);
+  assert(activeCount() === 16, 'con density 100 (complexity 100, rests 0) deberían sonar los 16 pasos, sonaron ' + activeCount());
+  console.log('OK: mover el slider de density actualiza el patrón en vivo, sin apretar Generate (0 -> 0 pasos, 100 -> 16 pasos)');
+
+  // Continuidad: subir density solo AGREGA pasos, no reordena el resto ni cambia el tono.
+  setSlider('density', 40);
+  await wait(60);
+  const at40 = snapshotSteps();
+  setSlider('density', 70);
+  await wait(60);
+  const at70 = snapshotSteps();
+  assert(at40.filter((s) => s.active).length >= 1, 'el test necesita al menos un paso activo con density 40');
+  assert(at70.filter((s) => s.active).length > at40.filter((s) => s.active).length, 'subir density debería sumar pasos activos');
+  assert(at40.every((s, i) => !s.active || at70[i].active), 'al subir density, los pasos que ya sonaban deberían seguir sonando (evolución continua, sin saltos)');
+  assert(at40.every((s, i) => !(s.active && at70[i].active) || s.note === at70[i].note), 'al mover density la curva de tono no debería cambiar');
+  console.log('OK: subir density solo agrega pasos: los que ya sonaban siguen ahí y con el mismo tono (' + at40.filter((s) => s.active).length + ' -> ' + at70.filter((s) => s.active).length + ')');
+
+  // Mover un control con el patrón SONANDO no debe cortar notas ni mandar panic.
+  const countCC = () => sentMessages.filter((m) => (m.data[0] & 0xf0) === 0xb0).length;
+  doc.getElementById('btnPlay').click();
+  await wait(150);
+  const ccBeforeLive = countCC();
+  setSlider('density', 55);
+  await wait(40);
+  setSlider('density', 65);
+  await wait(40);
+  assert(countCC() === ccBeforeLive, 'mover un slider con el patrón sonando no debería disparar panic (All Notes Off)');
+  assert(doc.querySelectorAll('.step--playing').length === 1, 'el resaltado del paso que suena debería seguir visible tras regenerar en vivo, hay ' + doc.querySelectorAll('.step--playing').length);
+  console.log('OK: con el patrón sonando, mover un slider no dispara panic y el resaltado del paso actual se mantiene');
+  doc.getElementById('btnStop').click();
+  await wait(20);
+
+  // replacePattern (misma cantidad de pasos) no resetea ni hace panic; con otra cantidad sí.
+  const panicCalls = [];
+  const stub2 = { noteOn() {}, noteOff() {}, panic() { panicCalls.push(1); } };
+  const seq2 = window.BG.Sequencer.createSequencer(stub2);
+  const genSteps = (steps, seed) => window.BG.Generator.generate({
+    steps, rate: '1/16', root: 0, scale: 'Natural Minor', octave: 2, octaveMin: 0, octaveMax: 0,
+    density: 1, complexity: 1, rests: 0, accentAmount: 0, velocityBase: 100, velocityAccentBoost: 0, seed,
+  });
+  seq2.setPattern(genSteps(16, 1));
+  seq2.start();
+  const panicsAtStart = panicCalls.length;
+  seq2.replacePattern(genSteps(16, 2));
+  assert(panicCalls.length === panicsAtStart, 'replacePattern con la misma cantidad de pasos no debería hacer panic');
+  seq2.replacePattern(genSteps(8, 3));
+  assert(panicCalls.length === panicsAtStart + 1, 'replacePattern con otra cantidad de pasos sí debería reiniciar (panic)');
+  seq2.stop();
+  console.log('OK: replacePattern reemplaza en caliente sin panic (y reinicia solo si cambia la cantidad de pasos)');
+
   console.log('\nTODOS LOS TESTS PASARON ✔');
 }
 
