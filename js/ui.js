@@ -11,7 +11,52 @@
 
   const Scales = global.BG.Scales;
 
+  // Sensibilidad de los gestos de arrastre vertical sobre un paso.
+  const PITCH_DRAG_PX_PER_SEMITONE = 10; // cuántos px hay que mover para subir/bajar 1 semitono
+  const GATE_DRAG_PX_FULL_RANGE = 120;   // cuántos px de arrastre cubren todo el rango de gate
+  const GATE_MIN = 0.1;
+  const GATE_MAX = 1.5;
+
   function $(id) { return document.getElementById(id); }
+
+  /**
+   * Adjunta un gesto de "click o arrastre vertical" a un elemento.
+   * Distingue ambos casos por distancia recorrida (threshold en px):
+   * si el mouse se mueve más que el threshold, es un drag (dispara
+   * onDrag en cada movimiento con el deltaY acumulado desde el inicio);
+   * si no, al soltar se considera un click simple (onClick).
+   */
+  function attachDragHandlers(el, handlers) {
+    const threshold = handlers.threshold != null ? handlers.threshold : 4;
+
+    el.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      let dragging = false;
+      const startY = e.clientY;
+      if (handlers.onDragStart) handlers.onDragStart();
+
+      function onMove(ev) {
+        const deltaY = ev.clientY - startY;
+        if (!dragging && Math.abs(deltaY) > threshold) dragging = true;
+        if (dragging && handlers.onDrag) handlers.onDrag(deltaY);
+      }
+      function onUp() {
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+        if (dragging) {
+          if (handlers.onDragEnd) handlers.onDragEnd();
+        } else if (handlers.onClick) {
+          handlers.onClick();
+        }
+      }
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
+  }
+
+  function clampGate(v) {
+    return Math.max(GATE_MIN, Math.min(GATE_MAX, v));
+  }
 
   function createUI() {
     const dom = {
@@ -172,32 +217,71 @@
 
         const stepEl = document.createElement('div');
         stepEl.className = 'step' + (isOnbeat ? ' step--onbeat' : ' step--offbeat') + (active ? '' : ' step--rest');
-        stepEl.title = 'Paso ' + (i + 1) + ' — click para activar/desactivar';
-        stepEl.addEventListener('click', () => {
-          if (stepClickHandler) stepClickHandler(i);
-        });
 
         const number = document.createElement('div');
         number.className = 'step__number';
         number.textContent = String(i + 1).padStart(2, '0');
 
+        // --- Zona de nota: click activa/desactiva, drag vertical cambia el tono ---
         const note = document.createElement('div');
         note.className = 'step__note';
+        note.title = 'Click: activar/desactivar · Arrastrar: cambiar nota';
         note.textContent = active ? Scales.midiToNoteName(pattern.note[i]) : '--';
 
+        let dragBaseNote = null;
+        attachDragHandlers(note, {
+          onClick: () => { if (stepClickHandler) stepClickHandler(i); },
+          onDragStart: () => { dragBaseNote = pattern.note[i]; },
+          onDrag: (deltaY) => {
+            if (!pattern.active[i] || dragBaseNote == null) return;
+            const semitoneDelta = Math.round(-deltaY / PITCH_DRAG_PX_PER_SEMITONE);
+            const target = dragBaseNote + semitoneDelta;
+            const quantized = Scales.quantizeToScale(target, pattern.root, pattern.scale);
+            pattern.note[i] = quantized;
+            note.textContent = Scales.midiToNoteName(quantized);
+          },
+        });
+
+        // --- Barra de velocity (solo lectura por ahora, drag llega en el próximo paso) ---
         const velWrap = document.createElement('div');
         velWrap.className = 'step__vel';
+        velWrap.title = 'Velocity';
         const velFill = document.createElement('div');
         velFill.className = 'step__vel-fill';
         velFill.style.height = active ? Math.round((pattern.velocity[i] / 127) * 100) + '%' : '0%';
         velWrap.appendChild(velFill);
+
+        // --- Barra de gate/duración: drag vertical la modifica ---
+        const gateWrap = document.createElement('div');
+        gateWrap.className = 'step__gate';
+        gateWrap.title = 'Arrastrar: duración de la nota (gate)';
+        const gateFill = document.createElement('div');
+        gateFill.className = 'step__gate-fill';
+        gateFill.style.height = active ? Math.round((pattern.gate[i] / GATE_MAX) * 100) + '%' : '0%';
+        gateWrap.appendChild(gateFill);
+
+        let dragBaseGate = null;
+        attachDragHandlers(gateWrap, {
+          onDragStart: () => { dragBaseGate = pattern.gate[i]; },
+          onDrag: (deltaY) => {
+            if (!pattern.active[i] || dragBaseGate == null) return;
+            const newGate = clampGate(dragBaseGate + (-deltaY / GATE_DRAG_PX_FULL_RANGE) * (GATE_MAX - GATE_MIN));
+            pattern.gate[i] = newGate;
+            gateFill.style.height = Math.round((newGate / GATE_MAX) * 100) + '%';
+          },
+        });
+
+        const barsWrap = document.createElement('div');
+        barsWrap.className = 'step__bars';
+        barsWrap.appendChild(velWrap);
+        barsWrap.appendChild(gateWrap);
 
         const accent = document.createElement('div');
         accent.className = 'step__accent' + (pattern.accent[i] ? ' step__accent--on' : '');
 
         stepEl.appendChild(number);
         stepEl.appendChild(note);
-        stepEl.appendChild(velWrap);
+        stepEl.appendChild(barsWrap);
         stepEl.appendChild(accent);
 
         dom.stepGrid.appendChild(stepEl);

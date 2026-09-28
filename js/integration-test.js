@@ -41,6 +41,17 @@ for (const rel of scripts) {
 
 function wait(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); }
 
+function click(el) {
+  el.dispatchEvent(new window.MouseEvent('mousedown', { clientY: 100, bubbles: true }));
+  window.document.dispatchEvent(new window.MouseEvent('mouseup', { clientY: 100, bubbles: true }));
+}
+
+function drag(el, { fromY, toY }) {
+  el.dispatchEvent(new window.MouseEvent('mousedown', { clientY: fromY, bubbles: true }));
+  window.document.dispatchEvent(new window.MouseEvent('mousemove', { clientY: toY, bubbles: true }));
+  window.document.dispatchEvent(new window.MouseEvent('mouseup', { clientY: toY, bubbles: true }));
+}
+
 async function run() {
   window.document.dispatchEvent(new window.Event('DOMContentLoaded'));
   await wait(50); // dejar que initMidi() (async) resuelva y puebla los selects
@@ -90,7 +101,7 @@ async function run() {
   assert(stepsAfter === 8, 'debería re-renderizar con 8 pasos tras cambiar el selector');
   console.log('OK: cambio de longitud de patrón a', stepsAfter, 'pasos funciona');
 
-  // --- Edición manual: click en un paso para activar/desactivar ---
+  // --- Edición manual: click en la zona de nota para activar/desactivar ---
   doc.getElementById('steps').value = '16';
   seedInput.value = '42';
   doc.getElementById('btnGenerate').click();
@@ -100,20 +111,42 @@ async function run() {
   assert(restIndex !== -1, 'debería existir al menos un paso inactivo para probar el toggle');
 
   const messagesBeforeToggle = sentMessages.length;
-  stepEls[restIndex].dispatchEvent(new window.Event('click', { bubbles: true }));
+  click(stepEls[restIndex].querySelector('.step__note'));
 
-  const stepGridAfter = doc.getElementById('stepGrid'); // se re-renderizó, tomamos referencias nuevas
-  const stepsAfterToggle = Array.from(stepGridAfter.querySelectorAll('.step'));
+  const stepsAfterToggle = Array.from(doc.getElementById('stepGrid').querySelectorAll('.step'));
   assert(!stepsAfterToggle[restIndex].classList.contains('step--rest'), 'el paso debería quedar activo tras el click');
-  const noteTextAfterOn = stepsAfterToggle[restIndex].querySelector('.step__note').textContent;
-  assert(noteTextAfterOn !== '--', 'un paso recién activado a mano debería mostrar una nota (tónica por defecto), mostró: ' + noteTextAfterOn);
+  const noteElAfterOn = stepsAfterToggle[restIndex].querySelector('.step__note');
+  assert(noteElAfterOn.textContent !== '--', 'un paso recién activado a mano debería mostrar una nota (tónica por defecto), mostró: ' + noteElAfterOn.textContent);
   assert(sentMessages.length === messagesBeforeToggle, 'editar un paso a mano no debería, por sí solo, enviar mensajes MIDI');
-  console.log('OK: click en un paso inactivo lo activa y le asigna la tónica (' + noteTextAfterOn + '), sin efectos MIDI colaterales');
+  console.log('OK: click en la zona de nota de un paso inactivo lo activa y le asigna la tónica (' + noteElAfterOn.textContent + '), sin efectos MIDI colaterales');
 
-  stepsAfterToggle[restIndex].dispatchEvent(new window.Event('click', { bubbles: true }));
+  click(stepsAfterToggle[restIndex].querySelector('.step__note'));
   const stepsAfterToggleOff = Array.from(doc.getElementById('stepGrid').querySelectorAll('.step'));
-  assert(stepsAfterToggleOff[restIndex].classList.contains('step--rest'), 'un segundo click sobre el mismo paso debería volver a desactivarlo');
+  assert(stepsAfterToggleOff[restIndex].classList.contains('step--rest'), 'un segundo click sobre la misma nota debería volver a desactivarla');
   console.log('OK: un segundo click vuelve a desactivar el paso');
+
+  // --- Edición manual: arrastrar verticalmente la nota para cambiar el tono ---
+  const activeIndex = stepsAfterToggleOff.findIndex((el) => !el.classList.contains('step--rest'));
+  assert(activeIndex !== -1, 'debería existir al menos un paso activo para probar el drag de tono');
+  const noteElToDrag = doc.getElementById('stepGrid').querySelectorAll('.step')[activeIndex].querySelector('.step__note');
+  const noteBefore = noteElToDrag.textContent;
+
+  drag(noteElToDrag, { fromY: 200, toY: 170 }); // arrastrar hacia arriba 30px => sube de tono
+
+  const noteElAfterDrag = doc.getElementById('stepGrid').querySelectorAll('.step')[activeIndex].querySelector('.step__note');
+  assert(noteElAfterDrag.textContent !== noteBefore, 'arrastrar verticalmente la nota debería cambiar el tono (antes: ' + noteBefore + ', después: ' + noteElAfterDrag.textContent + ')');
+  assert(sentMessages.length === messagesBeforeToggle, 'arrastrar el tono a mano tampoco debería enviar mensajes MIDI por sí solo');
+  console.log('OK: arrastrar la nota cambia el tono (' + noteBefore + ' -> ' + noteElAfterDrag.textContent + '), respetando la escala');
+
+  // --- Edición manual: arrastrar verticalmente el gate para cambiar la duración ---
+  const gateEl = doc.getElementById('stepGrid').querySelectorAll('.step')[activeIndex].querySelector('.step__gate-fill');
+  const gateHeightBefore = gateEl.style.height;
+
+  drag(doc.getElementById('stepGrid').querySelectorAll('.step')[activeIndex].querySelector('.step__gate'), { fromY: 200, toY: 140 }); // arrastrar hacia arriba 60px => más gate
+
+  const gateHeightAfter = doc.getElementById('stepGrid').querySelectorAll('.step')[activeIndex].querySelector('.step__gate-fill').style.height;
+  assert(gateHeightAfter !== gateHeightBefore, 'arrastrar el gate debería cambiar su duración visualmente (antes: ' + gateHeightBefore + ', después: ' + gateHeightAfter + ')');
+  console.log('OK: arrastrar la barra de gate cambia la duración de la nota (' + gateHeightBefore + ' -> ' + gateHeightAfter + ')');
 
   console.log('\nTODOS LOS TESTS PASARON ✔');
 }

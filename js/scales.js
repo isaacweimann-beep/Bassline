@@ -78,6 +78,30 @@
     return NOTE_NAMES[pitchClass] + octave;
   }
 
+  function clampMidi(v) {
+    return Math.max(0, Math.min(127, Math.round(v)));
+  }
+
+  /**
+   * Ajusta una nota MIDI arbitraria a la nota "en escala" más cercana.
+   * Se usa al arrastrar el tono de un paso a mano: el usuario mueve el
+   * mouse libremente, pero el resultado siempre cae dentro de la escala
+   * elegida (busca hacia arriba y hacia abajo en paralelo y toma lo que
+   * esté más cerca).
+   */
+  function quantizeToScale(midiNote, pitchClass, scaleName) {
+    const intervals = SCALES[scaleName] || SCALES['Chromatic'];
+    const allowed = new Set(intervals.map((iv) => ((pitchClass + iv) % 12 + 12) % 12));
+
+    for (let offset = 0; offset <= 12; offset++) {
+      const up = midiNote + offset;
+      if (allowed.has(((up % 12) + 12) % 12)) return clampMidi(up);
+      const down = midiNote - offset;
+      if (allowed.has(((down % 12) + 12) % 12)) return clampMidi(down);
+    }
+    return clampMidi(midiNote);
+  }
+
   global.BG = global.BG || {};
   global.BG.Scales = {
     NOTE_NAMES,
@@ -87,5 +111,6 @@
     degreeToMidi,
     closestDegreeIndex,
     midiToNoteName,
+    quantizeToScale,
   };
 })(typeof window !== 'undefined' ? window : globalThis);
