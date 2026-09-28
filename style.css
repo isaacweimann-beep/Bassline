@@ -546,3 +546,68 @@ input[type='range']:focus-visible,
   align-items: center;
   margin-bottom: 1rem;
 }
+
+
+/* -------------------------------------------------------------------- */
+/* Pad de nota: zona grande y visible para prender/apagar cada paso      */
+/* -------------------------------------------------------------------- */
+.step-grid {
+  grid-template-columns: repeat(var(--steps, 16), minmax(44px, 1fr));
+  min-width: calc(var(--steps, 16) * 47px);
+}
+
+/* Un paso apagado sigue viéndose claro; solo se atenúa lo secundario */
+.step--rest {
+  opacity: 1;
+}
+
+.step--rest .step__number,
+.step--rest .step__bars,
+.step--rest .step__accent {
+  opacity: 0.35;
+}
+
+.step__note {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg);
+  font-size: 0.78rem;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.step--onbeat:not(.step--rest) .step__note {
+  background: rgba(232, 163, 61, 0.16);
+  border-color: var(--amber-dim);
+}
+
+.step--offbeat:not(.step--rest) .step__note {
+  background: rgba(79, 168, 160, 0.16);
+  border-color: var(--teal-dim);
+}
+
+.step--rest .step__note {
+  border-style: dashed;
+  color: var(--text-faint);
+  cursor: pointer;
+}
+
+.step__note:hover {
+  border-color: var(--amber);
+  color: var(--text);
+}
+
+.step--rest .step__note:hover {
+  color: var(--amber);
+}
+
+.hint {
+  margin-left: auto;
+  font-size: 0.72rem;
+  color: var(--text-faint);
+}

@@ -26,12 +26,21 @@ navegador: el sonido sale siempre de tu hardware.
 
 ## Edición manual de pasos
 
-- **Click** sobre el nombre de la nota: prende/apaga el paso.
-- **Arrastrar verticalmente** sobre el nombre de la nota: cambia el tono (siempre dentro de la escala elegida).
+- **Click** sobre el pad de la nota (el recuadro grande con el nombre): prende/apaga el paso. Ámbar = paso fuerte, verde azulado = paso débil, borde punteado = apagado.
+- **Arrastrar verticalmente** sobre ese mismo pad: cambia el tono (siempre dentro de la escala elegida).
 - **Arrastrar** la barra de **velocity** (celeste/ámbar): cambia la velocity.
 - **Arrastrar** la barra de **gate** (violeta): cambia la duración de la nota (0.1x a 1.5x la duración del paso).
 - Se puede editar con el patrón sonando: el cambio se escucha en la siguiente pasada.
 - **lock rhythm / lock pitch** (botones violetas): con uno activo, "Generate" conserva esa capa del patrón actual y solo regenera la otra. Si cambiás la cantidad de pasos, los locks se ignoran (los largos no coinciden).
+
+## Regeneración en vivo
+
+Al mover un slider del Generator (density, complexity, rests, accent), cambiar el seed, o cambiar un selector musical (tónica, escala, octava, rango, pasos, rate), el patrón se regenera al instante, sin apretar Generate. Con el patrón sonando el cambio se aplica en caliente: no se reinicia la posición ni se cortan las notas.
+
+- Subir/bajar un slider hace evolucionar el patrón de forma continua (por ejemplo, subir density solo suma pasos; no reordena el resto).
+- Ritmo y pitch usan generadores aleatorios independientes derivados del seed.
+- Ojo: regenerar reemplaza las ediciones manuales. Para protegerlas, activá **lock rhythm** y/o **lock pitch** antes de mover los controles.
+- "Generate" y "dice" siguen existiendo: reinician la reproducción desde el paso 1.
 
 ## Swing y Shift
 
