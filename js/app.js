@@ -145,6 +145,7 @@
       sequencer.setTempo(ui.readTempo());
       sequencer.setSwing(ui.readSwing());
       sequencer.start();
+      ui.setClockMode(sequencer.clockMode);
       ui.setPlayingState(true);
     });
 

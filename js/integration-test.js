@@ -31,7 +31,7 @@ window.navigator.requestMIDIAccess = async () => ({
 // Cargar los scripts de la app en orden, tal como hace index.html
 const scripts = [
   'js/scales.js', 'js/rng.js', 'js/pattern.js', 'js/generator.js',
-  'js/midi.js', 'js/sequencer.js', 'js/ui.js', 'js/app.js',
+  'js/midi.js', 'js/clock.js', 'js/sequencer.js', 'js/ui.js', 'js/app.js',
 ];
 
 for (const rel of scripts) {
@@ -333,6 +333,57 @@ async function run() {
   assert(panicCalls.length === panicsAtStart + 1, 'replacePattern con otra cantidad de pasos sí debería reiniciar (panic)');
   seq2.stop();
   console.log('OK: replacePattern reemplaza en caliente sin panic (y reinicia solo si cambia la cantidad de pasos)');
+
+  // --- clock.js: el sequencer real, en este entorno (jsdom no tiene Worker) ---
+  const seq3 = window.BG.Sequencer.createSequencer({ noteOn() {}, noteOff() {}, panic() {} });
+  seq3.setPattern(genSteps(16, 9));
+  seq3.start();
+  assert(seq3.clockMode === 'main', 'sin soporte de Worker en el entorno, el sequencer debería caer al hilo principal, dio: ' + seq3.clockMode);
+  seq3.stop();
+  console.log('OK: sin Worker disponible, el sequencer cae automáticamente al timer de hilo principal (clockMode=' + seq3.clockMode + ')');
+
+  // --- clock.js: Worker simulado (start/stop, protocolo de mensajes, ticks tardíos ignorados) ---
+  function makeFakeWorker() {
+    return { posted: [], postMessage(msg) { this.posted.push(msg); }, terminate() {}, onmessage: null, onerror: null };
+  }
+
+  const fakeWorker = makeFakeWorker();
+  const ticks = [];
+  const clockA = window.BG.Clock.createClock({
+    intervalMs: 10,
+    onTick: () => ticks.push(1),
+    workerFactory: () => fakeWorker,
+  });
+  assert(clockA.mode === 'worker', 'con un workerFactory que devuelve un worker, el modo debería ser "worker"');
+
+  clockA.start();
+  assert(fakeWorker.posted[0].cmd === 'start' && fakeWorker.posted[0].intervalMs === 10, 'start() debería mandarle al worker {cmd:"start", intervalMs}');
+  fakeWorker.onmessage({}); // el worker "tickea" dos veces
+  fakeWorker.onmessage({});
+  assert(ticks.length === 2, 'cada mensaje del worker debería disparar onTick, hubo ' + ticks.length);
+
+  clockA.stop();
+  assert(fakeWorker.posted[1].cmd === 'stop', 'stop() debería mandarle al worker {cmd:"stop"}');
+  fakeWorker.onmessage({}); // tick tardío, llega después de haber parado
+  assert(ticks.length === 2, 'un tick que llega después de stop() no debería disparar onTick (había quedado "en vuelo")');
+  console.log('OK: Worker simulado — start/stop mandan el protocolo correcto y un tick tardío tras stop() se ignora');
+
+  // --- clock.js: si el worker se cae, fallback automático al hilo principal ---
+  const fakeWorker2 = makeFakeWorker();
+  let ticks2 = 0;
+  const clockB = window.BG.Clock.createClock({
+    intervalMs: 15,
+    onTick: () => { ticks2++; },
+    workerFactory: () => fakeWorker2,
+  });
+  clockB.start();
+  assert(clockB.mode === 'worker', 'debería arrancar en modo worker');
+  fakeWorker2.onerror(new Error('worker roto (simulado)'));
+  assert(clockB.mode === 'main', 'ante un error del worker debería caer a "main" automáticamente');
+  await wait(50);
+  clockB.stop();
+  assert(ticks2 > 0, 'tras el fallback debería seguir tickeando desde el hilo principal, ticks=' + ticks2);
+  console.log('OK: si el worker falla en pleno playback, el reloj cae solo al hilo principal y sigue funcionando');
 
   console.log('\nTODOS LOS TESTS PASARON ✔');
 }

@@ -16,9 +16,11 @@
  * quien dispara el mensaje en el instante exacto, no nuestro JS. Esto
  * evita el patrón "setTimeout para el Note Off" y sus imprecisiones.
  *
- * Nota: en V0.1 el timer corre en el hilo principal. Si el navegador
- * throttlea la pestaña en segundo plano, el timing puede degradarse.
- * En V0.2 este timer se moverá a un Web Worker para evitarlo.
+ * Nota: el "latido" que dispara cada `schedulerTick` corre en un Web
+ * Worker cuando el navegador lo permite (ver clock.js), así el timing no
+ * se degrada si la pestaña queda en segundo plano. La precisión real de
+ * cada evento, de todas formas, sigue viniendo de los timestamps que se
+ * le pasan a MIDIOutput.send(), no del propio timer.
  * -----------------------------------------------------------------------
  */
 (function (global) {
@@ -41,7 +43,6 @@
     let isPlaying = false;
     let currentStep = 0;
     let nextStepTime = 0; // ms, mismo dominio que performance.now()
-    let timerId = null;
     let onStepScheduled = null; // callback(stepIndex, timeMs) para la UI
 
     function secondsPerStep() {
@@ -116,18 +117,25 @@
       }
     }
 
+    // El "latido" del scheduler: corre en un Worker si el navegador lo
+    // permite (así no lo frena el throttling de pestañas en segundo plano),
+    // y cae solo a un timer normal si no. Ver clock.js para el detalle.
+    const clock = global.BG.Clock.createClock({
+      intervalMs: LOOKAHEAD_MS,
+      onTick: () => schedulerTick(),
+    });
+
     function start() {
       if (isPlaying || !pattern) return;
       isPlaying = true;
       currentStep = 0;
       nextStepTime = performance.now() + 10;
-      timerId = setInterval(schedulerTick, LOOKAHEAD_MS);
+      clock.start();
     }
 
     function stop() {
       isPlaying = false;
-      if (timerId) clearInterval(timerId);
-      timerId = null;
+      clock.stop();
       midi.panic(); // seguridad: nunca dejar notas colgadas al parar
     }
 
@@ -139,6 +147,7 @@
       start,
       stop,
       get isPlaying() { return isPlaying; },
+      get clockMode() { return clock.mode; }, // 'worker' | 'main', útil para diagnosticar
       set onStepScheduled(cb) { onStepScheduled = cb; },
     };
   }

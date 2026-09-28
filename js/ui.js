@@ -67,6 +67,7 @@
     const dom = {
       midiStatusDot: $('midiStatusDot'),
       midiStatusText: $('midiStatusText'),
+      clockModeText: $('clockModeText'),
 
       btnPlay: $('btnPlay'),
       btnStop: $('btnStop'),
@@ -169,6 +170,18 @@
       // state: 'ok' | 'warn' | 'error'
       dom.midiStatusText.textContent = text;
       dom.midiStatusDot.className = 'midi-status__dot midi-status__dot--' + (state || 'warn');
+    }
+
+    /**
+     * Muestra qué reloj quedó activo en el scheduler (se sabe recién al
+     * arrancar la reproducción). Sirve para confirmar en el navegador que
+     * la protección contra el throttling de segundo plano está funcionando.
+     */
+    function setClockMode(mode) {
+      if (!mode) { dom.clockModeText.textContent = ''; return; }
+      dom.clockModeText.textContent = mode === 'worker'
+        ? 'reloj: worker'
+        : 'reloj: hilo principal (sin protección de 2º plano)';
     }
 
     // --- Lectura de parámetros del formulario ---
@@ -376,6 +389,7 @@
       populateStaticOptions,
       populateMidiOutputs,
       setMidiStatus,
+      setClockMode,
       readGeneratorParams,
       readTempo,
       readSwing,
