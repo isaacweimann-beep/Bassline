@@ -63,6 +63,26 @@
     return pattern;
   }
 
+  /**
+   * Valor de modulación del Variator para un paso, en [-1, 1], según su
+   * posición dentro del ciclo del patrón (phase = i/steps, en [0,1)).
+   *   none      -> siempre 0 (sin variación)
+   *   ramp-up   -> sube parejo de -1 (inicio) a +1 (final): el patrón se va llenando
+   *   ramp-down -> baja parejo de +1 a -1: el patrón se va vaciando
+   *   wave      -> un ciclo de seno completo: sube, baja, y vuelve a subir
+   *   pulse     -> -1 en la primera mitad, +1 en la segunda (un "salto" a mitad de patrón)
+   */
+  function variatorShapeValue(shapeName, phase) {
+    switch (shapeName) {
+      case 'ramp-up': return -1 + 2 * phase;
+      case 'ramp-down': return 1 - 2 * phase;
+      case 'wave': return Math.sin(phase * Math.PI * 2);
+      case 'pulse': return phase < 0.5 ? -1 : 1;
+      case 'none':
+      default: return 0;
+    }
+  }
+
   /** Copia active/velocity/gate/accent del patrón anterior (lock rhythm). */
   function copyRhythm(source, target) {
     for (let i = 0; i < target.steps; i++) {
@@ -90,19 +110,32 @@
    *   - density*complexity => probabilidad en pasos débiles (offbeat)
    * `rests` resta probabilidad de forma pareja a todo el patrón, como
    * un control independiente para "dejar más aire".
+   *
+   * El Variator (variationShape + variationAmount) multiplica esa
+   * probabilidad base según la posición del paso en el ciclo, para que
+   * la densidad varíe sola a lo largo del patrón en vez de ser pareja.
+   * A diferencia de Reason, acá hay un solo Variator para todo el patrón
+   * (no uno separado para onbeat y otro para offbeat).
    */
   function generateRhythm(pattern, params, rng) {
     const density = clamp01(params.density);
     const complexity = clamp01(params.complexity);
     const rests = clamp01(params.rests);
     const accentAmount = clamp01(params.accentAmount);
+    const variationShape = params.variationShape || 'none';
+    const variationAmount = params.variationAmount != null ? params.variationAmount : 0; // -1..1
     const velocityBase = params.velocityBase != null ? params.velocityBase : 96;
     const velocityAccentBoost = params.velocityAccentBoost != null ? params.velocityAccentBoost : 24;
 
     for (let i = 0; i < pattern.steps; i++) {
       const isOnbeat = i % 2 === 0;
       const baseProb = isOnbeat ? density : density * complexity;
-      const finalProb = clamp01(baseProb * (1 - rests));
+
+      const phase = i / pattern.steps;
+      const shapeValue = variatorShapeValue(variationShape, phase);
+      const variedProb = baseProb * (1 + variationAmount * shapeValue);
+
+      const finalProb = clamp01(variedProb * (1 - rests));
 
       // Se consumen SIEMPRE las mismas 4 tiradas por paso (esté activo o no).
       // Así, mover un slider solo cambia umbrales y no "corre" el resto de las
