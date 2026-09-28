@@ -53,7 +53,9 @@ function drag(el, { fromY, toY }) {
 }
 
 async function run() {
-  window.document.dispatchEvent(new window.Event('DOMContentLoaded'));
+  // jsdom ya dispara 'DOMContentLoaded' solo al parsear el HTML (por eso NO
+  // lo disparamos de nuevo acá: hacerlo duplicaría todos los listeners que
+  // app.js registra en su handler de init).
   await wait(50); // dejar que initMidi() (async) resuelva y puebla los selects
 
   const doc = window.document;
@@ -116,9 +118,9 @@ async function run() {
   const stepsAfterToggle = Array.from(doc.getElementById('stepGrid').querySelectorAll('.step'));
   assert(!stepsAfterToggle[restIndex].classList.contains('step--rest'), 'el paso debería quedar activo tras el click');
   const noteElAfterOn = stepsAfterToggle[restIndex].querySelector('.step__note');
-  assert(noteElAfterOn.textContent !== '--', 'un paso recién activado a mano debería mostrar una nota (tónica por defecto), mostró: ' + noteElAfterOn.textContent);
+  assert(noteElAfterOn.textContent !== '--', 'un paso recién activado a mano debería mostrar la nota de la curva de pitch, mostró: ' + noteElAfterOn.textContent);
   assert(sentMessages.length === messagesBeforeToggle, 'editar un paso a mano no debería, por sí solo, enviar mensajes MIDI');
-  console.log('OK: click en la zona de nota de un paso inactivo lo activa y le asigna la tónica (' + noteElAfterOn.textContent + '), sin efectos MIDI colaterales');
+  console.log('OK: click en la zona de nota de un paso inactivo lo activa y toma la nota de la curva de pitch (' + noteElAfterOn.textContent + '), sin efectos MIDI colaterales');
 
   click(stepsAfterToggle[restIndex].querySelector('.step__note'));
   const stepsAfterToggleOff = Array.from(doc.getElementById('stepGrid').querySelectorAll('.step'));
@@ -147,6 +149,57 @@ async function run() {
   const gateHeightAfter = doc.getElementById('stepGrid').querySelectorAll('.step')[activeIndex].querySelector('.step__gate-fill').style.height;
   assert(gateHeightAfter !== gateHeightBefore, 'arrastrar el gate debería cambiar su duración visualmente (antes: ' + gateHeightBefore + ', después: ' + gateHeightAfter + ')');
   console.log('OK: arrastrar la barra de gate cambia la duración de la nota (' + gateHeightBefore + ' -> ' + gateHeightAfter + ')');
+
+  // --- Edición manual: arrastrar verticalmente la velocity ---
+  const velEl = doc.getElementById('stepGrid').querySelectorAll('.step')[activeIndex].querySelector('.step__vel-fill');
+  const velHeightBefore = velEl.style.height;
+
+  drag(doc.getElementById('stepGrid').querySelectorAll('.step')[activeIndex].querySelector('.step__vel'), { fromY: 200, toY: 260 }); // hacia abajo => menos velocity
+
+  const velHeightAfter = doc.getElementById('stepGrid').querySelectorAll('.step')[activeIndex].querySelector('.step__vel-fill').style.height;
+  assert(velHeightAfter !== velHeightBefore, 'arrastrar la barra de velocity debería cambiarla visualmente (antes: ' + velHeightBefore + ', después: ' + velHeightAfter + ')');
+  console.log('OK: arrastrar la barra de velocity cambia su valor (' + velHeightBefore + ' -> ' + velHeightAfter + ')');
+
+  // --- Locks: regenerar no debería pisar lo que está "trabado" ---
+  function snapshotSteps() {
+    return Array.from(doc.getElementById('stepGrid').querySelectorAll('.step')).map((el) => ({
+      active: !el.classList.contains('step--rest'),
+      note: el.querySelector('.step__note').textContent,
+    }));
+  }
+
+  seedInput.value = '1001';
+  doc.getElementById('btnGenerate').click();
+  const beforeLock = snapshotSteps();
+
+  doc.getElementById('btnLockRhythm').click(); // activar lock rhythm
+  seedInput.value = '2002';
+  doc.getElementById('btnGenerate').click();
+  const afterLockRhythm = snapshotSteps();
+
+  const rhythmPreserved = beforeLock.every((s, idx) => s.active === afterLockRhythm[idx].active);
+  assert(rhythmPreserved, 'con lock rhythm activado, qué pasos están activos debería mantenerse igual al regenerar con otro seed');
+  const pitchChangedSomewhere = beforeLock.some((s, idx) => s.active && s.note !== afterLockRhythm[idx].note);
+  assert(pitchChangedSomewhere, 'sin lock pitch, el tono debería poder cambiar al regenerar con otro seed');
+  console.log('OK: lock rhythm preserva qué pasos suenan; sin lock pitch, el tono sí cambió');
+
+  doc.getElementById('btnLockRhythm').click(); // desactivar lock rhythm
+  doc.getElementById('btnLockPitch').click();  // activar lock pitch
+  seedInput.value = '3003';
+  doc.getElementById('btnGenerate').click();
+  const afterLockPitch = snapshotSteps();
+
+  // Solo se puede comparar el tono donde el paso está activo en ambos
+  // patrones (en los pasos inactivos la UI muestra '--', no la nota).
+  const overlap = afterLockRhythm
+    .map((s, idx) => ({ before: s, after: afterLockPitch[idx] }))
+    .filter((pair) => pair.before.active && pair.after.active);
+  assert(overlap.length >= 3, 'el test necesita al menos 3 pasos activos en ambos patrones para comparar tonos, hay ' + overlap.length);
+  const pitchPreserved = overlap.every((pair) => pair.before.note === pair.after.note);
+  assert(pitchPreserved, 'con lock pitch activado, la curva de tono debería mantenerse igual al regenerar con otro seed');
+  console.log('OK: lock pitch preserva la curva de tono al regenerar con otro seed (' + overlap.length + ' pasos comparados)');
+
+  doc.getElementById('btnLockPitch').click(); // dejar los locks apagados
 
   console.log('\nTODOS LOS TESTS PASARON ✔');
 }

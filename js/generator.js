@@ -31,16 +31,49 @@
    * @param {Object} params
    *   steps, rate, root, scale, octave, octaveMin, octaveMax,
    *   density (0-1), complexity (0-1), rests (0-1), accentAmount (0-1),
-   *   velocityBase (0-127), velocityAccentBoost (0-127), seed
+   *   velocityBase (0-127), velocityAccentBoost (0-127), seed,
+   *   lockRhythm, lockPitch (booleans, opcionales),
+   *   previousPattern (Pattern anterior, opcional, requerido si se usa lock)
    */
   function generate(params) {
     const rng = RNG.createRng(params.seed);
     const pattern = PatternModule.createEmptyPattern(params);
 
-    generateRhythm(pattern, params, rng);
-    generatePitch(pattern, params, rng);
+    const prev = params.previousPattern;
+    // Un lock solo tiene sentido si el patrón anterior tiene la misma
+    // cantidad de pasos (si no, los arrays no alinean 1 a 1).
+    const canReuse = !!prev && prev.steps === pattern.steps;
+
+    if (params.lockRhythm && canReuse) {
+      copyRhythm(prev, pattern);
+    } else {
+      generateRhythm(pattern, params, rng);
+    }
+
+    if (params.lockPitch && canReuse) {
+      copyPitch(prev, pattern);
+    } else {
+      generatePitch(pattern, params, rng);
+    }
 
     return pattern;
+  }
+
+  /** Copia active/velocity/gate/accent del patrón anterior (lock rhythm). */
+  function copyRhythm(source, target) {
+    for (let i = 0; i < target.steps; i++) {
+      target.active[i] = source.active[i];
+      target.velocity[i] = source.velocity[i];
+      target.gate[i] = source.gate[i];
+      target.accent[i] = source.accent[i];
+    }
+  }
+
+  /** Copia la curva de pitch del patrón anterior (lock pitch). */
+  function copyPitch(source, target) {
+    for (let i = 0; i < target.steps; i++) {
+      target.note[i] = source.note[i];
+    }
   }
 
   /**
@@ -89,7 +122,13 @@
   }
 
   /**
-   * Decide la altura de cada paso activo, respetando la escala elegida.
+   * Calcula una curva de pitch para TODOS los pasos (no solo los activos),
+   * respetando la escala elegida. Que la curva exista para el patrón
+   * completo -y no solo donde hay nota- es lo que permite que "lock pitch"
+   * y "lock rhythm" sean completamente independientes entre sí: cuál nota
+   * suena es una decisión de la capa de ritmo (pattern.active), no de esta
+   * función.
+   *
    * Usa un sistema de pesos por grado (tónica / quinta / tercera / resto)
    * y un límite de salto para evitar líneas demasiado erráticas.
    */
@@ -117,11 +156,6 @@
     let previousMidi = null;
 
     for (let i = 0; i < pattern.steps; i++) {
-      if (!pattern.active[i]) {
-        pattern.note[i] = null;
-        continue;
-      }
-
       let midiNote = null;
       for (let attempt = 0; attempt < MAX_PITCH_RETRIES; attempt++) {
         const degree = pickWeightedDegree(rng, weights, rootDegree, fifthDegree, thirdDegree, otherDegrees);

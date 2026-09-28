@@ -17,6 +17,7 @@
 
   function generateAndLoad() {
     const params = ui.readGeneratorParams();
+    params.previousPattern = currentPattern;
     currentPattern = window.BG.Generator.generate(params);
     ui.renderPattern(currentPattern);
     sequencer.setPattern(currentPattern);
@@ -34,8 +35,9 @@
     p.active[index] = !p.active[index];
 
     if (p.active[index]) {
-      // Si el paso no tenía nota asignada (estaba vacío desde que se
-      // generó), le damos un valor de partida razonable: la tónica.
+      // La curva de pitch existe para todos los pasos, así que al prenderlo
+      // toma la nota que ya tenía. Solo si por algún motivo no hubiera
+      // ninguna (patrón viejo), caemos a la tónica como red de seguridad.
       if (p.note[index] == null) {
         p.note[index] = window.BG.Scales.rootMidi(p.root, p.octave);
       }
@@ -84,6 +86,8 @@
 
   function bindEvents() {
     ui.bindKnobDisplays();
+    ui.bindToggleButton(ui.dom.btnLockRhythm);
+    ui.bindToggleButton(ui.dom.btnLockPitch);
 
     ui.dom.btnGenerate.addEventListener('click', generateAndLoad);
     ui.dom.btnNewSeed.addEventListener('click', () => {

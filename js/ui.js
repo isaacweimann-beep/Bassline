@@ -14,6 +14,7 @@
   // Sensibilidad de los gestos de arrastre vertical sobre un paso.
   const PITCH_DRAG_PX_PER_SEMITONE = 10; // cuántos px hay que mover para subir/bajar 1 semitono
   const GATE_DRAG_PX_FULL_RANGE = 120;   // cuántos px de arrastre cubren todo el rango de gate
+  const VELOCITY_DRAG_PX_FULL_RANGE = 120; // cuántos px de arrastre cubren todo el rango de velocity
   const GATE_MIN = 0.1;
   const GATE_MAX = 1.5;
 
@@ -58,6 +59,10 @@
     return Math.max(GATE_MIN, Math.min(GATE_MAX, v));
   }
 
+  function clampVelocity(v) {
+    return Math.max(1, Math.min(127, Math.round(v)));
+  }
+
   function createUI() {
     const dom = {
       midiStatusDot: $('midiStatusDot'),
@@ -90,6 +95,8 @@
       seed: $('seed'),
       btnNewSeed: $('btnNewSeed'),
       btnGenerate: $('btnGenerate'),
+      btnLockRhythm: $('btnLockRhythm'),
+      btnLockPitch: $('btnLockPitch'),
 
       stepGrid: $('stepGrid'),
       stepGridEmpty: $('stepGridEmpty'),
@@ -177,6 +184,8 @@
         velocityBase: 100,
         velocityAccentBoost: 22,
         seed: dom.seed.value,
+        lockRhythm: dom.btnLockRhythm.getAttribute('aria-pressed') === 'true',
+        lockPitch: dom.btnLockPitch.getAttribute('aria-pressed') === 'true',
       };
     }
 
@@ -242,14 +251,25 @@
           },
         });
 
-        // --- Barra de velocity (solo lectura por ahora, drag llega en el próximo paso) ---
+        // --- Barra de velocity: drag vertical la modifica ---
         const velWrap = document.createElement('div');
         velWrap.className = 'step__vel';
-        velWrap.title = 'Velocity';
+        velWrap.title = 'Arrastrar: velocity';
         const velFill = document.createElement('div');
         velFill.className = 'step__vel-fill';
         velFill.style.height = active ? Math.round((pattern.velocity[i] / 127) * 100) + '%' : '0%';
         velWrap.appendChild(velFill);
+
+        let dragBaseVelocity = null;
+        attachDragHandlers(velWrap, {
+          onDragStart: () => { dragBaseVelocity = pattern.velocity[i]; },
+          onDrag: (deltaY) => {
+            if (!pattern.active[i] || dragBaseVelocity == null) return;
+            const newVel = clampVelocity(dragBaseVelocity + (-deltaY / VELOCITY_DRAG_PX_FULL_RANGE) * 127);
+            pattern.velocity[i] = newVel;
+            velFill.style.height = Math.round((newVel / 127) * 100) + '%';
+          },
+        });
 
         // --- Barra de gate/duración: drag vertical la modifica ---
         const gateWrap = document.createElement('div');
@@ -322,6 +342,13 @@
       if (!isPlaying) clearHighlightTimeouts();
     }
 
+    function bindToggleButton(buttonEl) {
+      buttonEl.addEventListener('click', () => {
+        const pressed = buttonEl.getAttribute('aria-pressed') === 'true';
+        buttonEl.setAttribute('aria-pressed', String(!pressed));
+      });
+    }
+
     // --- API pública ---
 
     return {
@@ -333,6 +360,7 @@
       readTempo,
       setSeed,
       bindKnobDisplays,
+      bindToggleButton,
       renderPattern,
       scheduleStepHighlight,
       setPlayingState,
