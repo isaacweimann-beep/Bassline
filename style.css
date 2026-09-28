@@ -16,6 +16,8 @@
   --amber-dim: #7a5a2c;
   --teal: #4fa8a0;
   --teal-dim: #2f5450;
+  --violet: #8f7cc7;
+  --violet-dim: #4d4470;
   --red: #d9614f;
 
   --font-label: 'Space Grotesk', 'Segoe UI', sans-serif;
@@ -291,6 +293,17 @@ input[type='range']:focus-visible,
   border-color: var(--red);
 }
 
+.btn--toggle[aria-pressed='true'] {
+  background: var(--violet);
+  border-color: var(--violet);
+  color: #14101f;
+  font-weight: 700;
+}
+
+.control-row--locks {
+  margin-top: 1.25rem;
+}
+
 /* -------------------------------------------------------------------- */
 /* Generator: knobs (implementados como sliders verticales simples)      */
 /* -------------------------------------------------------------------- */
@@ -400,6 +413,22 @@ input[type='range']:focus-visible,
   border-color: var(--amber);
 }
 
+.step {
+  user-select: none;
+}
+
+.step:hover {
+  border-color: var(--text-muted);
+}
+
+.step__note {
+  cursor: ns-resize;
+}
+
+.step__note:hover {
+  color: var(--amber);
+}
+
 .step__number {
   font-family: var(--font-mono);
   font-size: 0.62rem;
@@ -430,6 +459,32 @@ input[type='range']:focus-visible,
 
 .step--onbeat .step__vel-fill {
   background: var(--amber);
+}
+
+.step__bars {
+  display: flex;
+  gap: 4px;
+  align-items: flex-end;
+}
+
+.step__gate {
+  width: 10px;
+  height: 42px;
+  background: var(--line-soft);
+  border-radius: 2px;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+  cursor: ns-resize;
+}
+
+.step__gate:hover {
+  box-shadow: inset 0 0 0 1px var(--violet);
+}
+
+.step__gate-fill {
+  width: 100%;
+  background: var(--violet);
 }
 
 .step__accent {
