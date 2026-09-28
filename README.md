@@ -51,6 +51,12 @@ Al mover un slider del Generator (density, complexity, rests, accent), cambiar e
 
 Scheduler en Web Worker, Variators, slots de patrón, presets, exportación .mid/JSON, MIDI Clock.
 
+## Reloj del scheduler (Web Worker)
+
+El "latido" que dispara el look-ahead scheduling corre en un Web Worker cuando el navegador lo permite, así el timing no se degrada si dejás la pestaña en segundo plano (los timers del hilo principal se throttlean ahí, un Worker no). Si el navegador no soporta Worker/Blob, o el Worker falla en pleno playback, cae solo a un timer normal — sigue funcionando, pero sin esa protección.
+
+Arriba a la derecha, al lado del estado de MIDI, aparece **"reloj: worker"** o **"reloj: hilo principal"** apenas apretás Play — sirve para confirmar cuál quedó activo en tu navegador.
+
 ## Estructura
 
 ```
@@ -62,11 +68,12 @@ js/
   pattern.js     → modelo de datos del patrón
   generator.js   → motor de generación (puro, sin DOM/MIDI)
   midi.js        → acceso a Web MIDI (dispositivos, envío, panic)
+  clock.js       → reloj periódico (Web Worker con fallback a timer normal)
   sequencer.js   → scheduler de reproducción (look-ahead)
   ui.js          → renderizado del DOM y eventos
   app.js         → arranque y conexión entre módulos
 test/
-  integration-test.js → test automatizado (Node + jsdom, simula Web MIDI)
+  integration-test.js → test automatizado (Node + jsdom, simula Web MIDI y el Worker)
 ```
 
 ## Correr el test automatizado (opcional, requiere Node)
