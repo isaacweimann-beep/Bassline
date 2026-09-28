@@ -32,6 +32,12 @@
         <span class="field__unit">bpm</span>
       </label>
 
+      <label class="field field--range">
+        <span class="field__label">swing</span>
+        <input type="range" id="swing" min="0" max="100" value="0" />
+        <span class="field__value" id="swingValue">0%</span>
+      </label>
+
       <label class="field field--grow">
         <span class="field__label">midi out</span>
         <select id="midiOutput" class="field__select"></select>
@@ -132,6 +138,11 @@
 
   <!-- STEP SEQUENCER -->
   <section class="panel panel--steps" data-name="pattern">
+    <div class="control-row control-row--tools">
+      <span class="field__label">shift</span>
+      <button id="btnShiftLeft" type="button" class="btn btn--ghost btn--small" title="Rotar el patrón un paso hacia atrás">-1</button>
+      <button id="btnShiftRight" type="button" class="btn btn--ghost btn--small" title="Rotar el patrón un paso hacia adelante">+1</button>
+    </div>
     <div class="step-grid" id="stepGrid">
       <p class="step-grid__empty" id="stepGridEmpty">Presioná «Generate» para crear un patrón.</p>
     </div>

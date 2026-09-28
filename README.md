@@ -33,9 +33,14 @@ navegador: el sonido sale siempre de tu hardware.
 - Se puede editar con el patrón sonando: el cambio se escucha en la siguiente pasada.
 - **lock rhythm / lock pitch** (botones violetas): con uno activo, "Generate" conserva esa capa del patrón actual y solo regenera la otra. Si cambiás la cantidad de pasos, los locks se ignoran (los largos no coinciden).
 
+## Swing y Shift
+
+- **swing** (barra de transporte, 0-100%): retrasa los pasos impares (offbeat) una fracción del paso. 0% = recto, ~67% = tresillo clásico, 100% = máximo (semicorchea con puntillo). Se puede mover con el patrón sonando.
+- **shift -1 / +1** (sobre la grilla): rota el patrón completo un paso hacia atrás/adelante, con wrap-around. También funciona con el patrón sonando.
+
 ## Qué falta (ver roadmap completo en la conversación de diseño)
 
-Swing, Shift, Variators, slots de patrón, presets, exportación .mid/JSON, MIDI Clock, scheduler en Web Worker.
+Scheduler en Web Worker, Variators, slots de patrón, presets, exportación .mid/JSON, MIDI Clock.
 
 ## Estructura
 
