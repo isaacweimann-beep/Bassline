@@ -92,10 +92,21 @@
       complexity: $('complexity'),
       rests: $('rests'),
       accentAmount: $('accentAmount'),
+      weightRoot: $('weightRoot'),
+      weightFifth: $('weightFifth'),
+      weightThird: $('weightThird'),
+      weightOther: $('weightOther'),
+      variationShape: $('variationShape'),
+      variationAmount: $('variationAmount'),
+      variationAmountValue: $('variationAmountValue'),
       densityValue: $('densityValue'),
       complexityValue: $('complexityValue'),
       restsValue: $('restsValue'),
       accentAmountValue: $('accentAmountValue'),
+      weightRootValue: $('weightRootValue'),
+      weightFifthValue: $('weightFifthValue'),
+      weightThirdValue: $('weightThirdValue'),
+      weightOtherValue: $('weightOtherValue'),
 
       seed: $('seed'),
       btnNewSeed: $('btnNewSeed'),
@@ -123,6 +134,13 @@
       fillSelect(dom.steps, [8, 16, 32].map((s) => ({ value: s, label: s + ' pasos' })), 16);
       fillSelect(dom.rate, ['1/4', '1/8', '1/16', '1/32'].map((r) => ({ value: r, label: r })), '1/16');
       fillSelect(dom.midiChannel, range(1, 16).map((c) => ({ value: c, label: 'canal ' + c })), 1);
+      fillSelect(dom.variationShape, [
+        { value: 'none', label: 'none (recto)' },
+        { value: 'ramp-up', label: 'ramp up' },
+        { value: 'ramp-down', label: 'ramp down' },
+        { value: 'wave', label: 'wave' },
+        { value: 'pulse', label: 'pulse' },
+      ], 'none');
 
       // Escala por defecto: Natural Minor si existe, si no la primera de la lista.
       if (Scales.SCALE_NAMES.includes('Natural Minor')) dom.scale.value = 'Natural Minor';
@@ -199,6 +217,14 @@
         complexity: Number(dom.complexity.value) / 100,
         rests: Number(dom.rests.value) / 100,
         accentAmount: Number(dom.accentAmount.value) / 100,
+        degreeWeights: {
+          root: Number(dom.weightRoot.value),
+          fifth: Number(dom.weightFifth.value),
+          third: Number(dom.weightThird.value),
+          other: Number(dom.weightOther.value),
+        },
+        variationShape: dom.variationShape.value,
+        variationAmount: Number(dom.variationAmount.value) / 100,
         velocityBase: 100,
         velocityAccentBoost: 22,
         seed: dom.seed.value,
@@ -233,6 +259,13 @@
       bindLiveValue(dom.rests, dom.restsValue, '%');
       bindLiveValue(dom.accentAmount, dom.accentAmountValue, '%');
       bindLiveValue(dom.swing, dom.swingValue, '%');
+      // Los pesos son valores relativos, no un porcentaje del total (el
+      // motor normaliza solo), así que se muestran como número simple.
+      bindLiveValue(dom.weightRoot, dom.weightRootValue, '');
+      bindLiveValue(dom.weightFifth, dom.weightFifthValue, '');
+      bindLiveValue(dom.weightThird, dom.weightThirdValue, '');
+      bindLiveValue(dom.weightOther, dom.weightOtherValue, '');
+      bindLiveValue(dom.variationAmount, dom.variationAmountValue, '%');
     }
 
     // --- Render del step sequencer (solo visual en V0.1, sin edición) ---

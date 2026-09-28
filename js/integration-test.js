@@ -385,6 +385,81 @@ async function run() {
   assert(ticks2 > 0, 'tras el fallback debería seguir tickeando desde el hilo principal, ticks=' + ticks2);
   console.log('OK: si el worker falla en pleno playback, el reloj cae solo al hilo principal y sigue funcionando');
 
+  // --- Pesos de escala: root al máximo y el resto en 0 -> casi todas las notas activas son la tónica ---
+  setSlider('weightRoot', 100);
+  setSlider('weightFifth', 0);
+  setSlider('weightThird', 0);
+  setSlider('weightOther', 0);
+  setSlider('density', 90);
+  setSlider('complexity', 90);
+  setSlider('rests', 0);
+  seedInput.value = '8080';
+  doc.getElementById('rootNote').value = '0'; // C
+  doc.getElementById('rootNote').dispatchEvent(new window.Event('change', { bubbles: true }));
+  await wait(60);
+
+  const rootWeightedSnapshot = snapshotSteps().filter((s) => s.active);
+  assert(rootWeightedSnapshot.length >= 6, 'el test necesita varios pasos activos para ser representativo, hubo ' + rootWeightedSnapshot.length);
+  const allRoot = rootWeightedSnapshot.every((s) => s.note.startsWith('C'));
+  assert(allRoot, 'con el peso de "root" al máximo y el resto en 0, todas las notas activas deberían ser la tónica (C), salió: ' + rootWeightedSnapshot.map((s) => s.note).join(' '));
+  console.log('OK: los sliders de pesos de escala afectan la generación (root=100/resto=0 -> ' + rootWeightedSnapshot.length + '/' + rootWeightedSnapshot.length + ' notas son la tónica), y reaccionan en vivo sin apretar Generate');
+
+  // Reponer pesos por defecto para no afectar nada que corra después
+  setSlider('weightRoot', 40);
+  setSlider('weightFifth', 20);
+  setSlider('weightThird', 15);
+  setSlider('weightOther', 25);
+
+  // --- Variator: sin shape/amount (default), el resultado debe ser IDÉNTICO a antes ---
+  const baseGenParams = {
+    steps: 16, rate: '1/16', root: 0, scale: 'Natural Minor', octave: 2, octaveMin: -1, octaveMax: 1,
+    density: 0.75, complexity: 0.5, rests: 0.1, accentAmount: 0.25,
+    velocityBase: 100, velocityAccentBoost: 20, seed: 'variator-regression',
+  };
+  const withoutVariator = window.BG.Generator.generate(baseGenParams);
+  const withNoneExplicit = window.BG.Generator.generate(Object.assign({}, baseGenParams, { variationShape: 'none', variationAmount: 0 }));
+  assert(JSON.stringify(withoutVariator) === JSON.stringify(withNoneExplicit), 'con variationShape "none" o sin especificarlo, el patrón debería ser idéntico (sin regresión)');
+  console.log('OK: sin Variator (o con shape "none"), la generación no cambió respecto a antes');
+
+  // --- Variator: "pulse" + amount 100% es matemáticamente exacto -> test determinístico, sin estadística ---
+  const pulsePattern = window.BG.Generator.generate({
+    steps: 16, rate: '1/16', root: 0, scale: 'Chromatic', octave: 2, octaveMin: 0, octaveMax: 0,
+    density: 0.6, complexity: 1, rests: 0, accentAmount: 0,
+    velocityBase: 100, velocityAccentBoost: 0, seed: 'pulse-test',
+    variationShape: 'pulse', variationAmount: 1,
+  });
+  const firstHalfSilent = pulsePattern.active.slice(0, 8).every((a) => a === false);
+  const secondHalfFull = pulsePattern.active.slice(8, 16).every((a) => a === true);
+  assert(firstHalfSilent, 'con shape "pulse" y amount 100%, la primera mitad debería quedar en silencio total (probabilidad exacta 0), dio: ' + pulsePattern.active.slice(0, 8).join(','));
+  assert(secondHalfFull, 'con shape "pulse" y amount 100%, la segunda mitad debería sonar completa (probabilidad exacta 1), dio: ' + pulsePattern.active.slice(8, 16).join(','));
+  console.log('OK: Variator "pulse" al 100% deja la primera mitad del patrón en silencio y la segunda completamente llena (resultado exacto, no estadístico)');
+
+  // --- Variator desde la UI: mismo caso "pulse", pero a través de los controles reales (sin apretar Generate) ---
+  doc.getElementById('scale').value = 'Chromatic';
+  doc.getElementById('scale').dispatchEvent(new window.Event('change', { bubbles: true }));
+  setSlider('density', 60);
+  setSlider('complexity', 100);
+  setSlider('rests', 0);
+  seedInput.value = 'pulse-ui-test';
+  const variationShapeSelect = doc.getElementById('variationShape');
+  variationShapeSelect.value = 'pulse';
+  variationShapeSelect.dispatchEvent(new window.Event('change', { bubbles: true }));
+  setSlider('variationAmount', 100);
+  await wait(60);
+
+  const uiPulseSnapshot = snapshotSteps();
+  const uiFirstHalfSilent = uiPulseSnapshot.slice(0, 8).every((s) => !s.active);
+  const uiSecondHalfFull = uiPulseSnapshot.slice(8, 16).every((s) => s.active);
+  assert(uiFirstHalfSilent && uiSecondHalfFull, 'el Variator debería funcionar en vivo desde la UI, sin apretar Generate, igual que en el motor puro');
+  console.log('OK: el Variator "pulse" funciona en vivo desde los controles de la UI (shape + amount, sin apretar Generate)');
+
+  // Reponer valores neutros para no afectar nada que corra después
+  variationShapeSelect.value = 'none';
+  variationShapeSelect.dispatchEvent(new window.Event('change', { bubbles: true }));
+  setSlider('variationAmount', 0);
+  doc.getElementById('scale').value = 'Natural Minor';
+  doc.getElementById('scale').dispatchEvent(new window.Event('change', { bubbles: true }));
+
   console.log('\nTODOS LOS TESTS PASARON ✔');
 }
 

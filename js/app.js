@@ -129,8 +129,12 @@
     ui.bindToggleButton(ui.dom.btnLockPitch);
 
     // Regeneración en vivo: sliders del generator, selects musicales y seed.
-    [ui.dom.density, ui.dom.complexity, ui.dom.rests, ui.dom.accentAmount, ui.dom.seed]
-      .forEach((el) => el.addEventListener('input', scheduleLiveRegenerate));
+    [
+      ui.dom.density, ui.dom.complexity, ui.dom.rests, ui.dom.accentAmount, ui.dom.seed,
+      ui.dom.weightRoot, ui.dom.weightFifth, ui.dom.weightThird, ui.dom.weightOther,
+      ui.dom.variationAmount,
+    ].forEach((el) => el.addEventListener('input', scheduleLiveRegenerate));
+    ui.dom.variationShape.addEventListener('change', scheduleLiveRegenerate);
     [ui.dom.rootNote, ui.dom.scale, ui.dom.octave, ui.dom.octaveMin, ui.dom.octaveMax, ui.dom.steps, ui.dom.rate]
       .forEach((el) => el.addEventListener('change', scheduleLiveRegenerate));
 
