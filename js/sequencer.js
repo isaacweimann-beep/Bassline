@@ -37,6 +37,7 @@
   function createSequencer(midi) {
     let pattern = null;
     let bpm = 120;
+    let swing = 0; // 0..1 (0 = recto, 1 = máximo)
     let isPlaying = false;
     let currentStep = 0;
     let nextStepTime = 0; // ms, mismo dominio que performance.now()
@@ -60,7 +61,25 @@
       bpm = Math.max(20, Math.min(300, newBpm));
     }
 
-    function scheduleStep(stepIndex, timeMs) {
+    /**
+     * Swing en porcentaje (0-100). Retrasa los pasos impares (los
+     * "offbeat" de la grilla) una fracción del paso:
+     *   retraso = swing * 0.5 * duraciónDelPaso
+     * Con 0% todo cae en la grilla recta; con 100% el offbeat cae al 75%
+     * del par de pasos (semicorchea con puntillo); cerca del 67% se
+     * obtiene el swing de tresillo clásico. El retraso se suma al tiempo
+     * de cada evento al agendarlo, sin alterar la grilla base (así no se
+     * acumula deriva).
+     */
+    function setSwing(percent) {
+      swing = Math.max(0, Math.min(100, percent)) / 100;
+    }
+
+    function scheduleStep(stepIndex, gridTimeMs) {
+      const stepDurationMs = secondsPerStep() * 1000;
+      const swingOffsetMs = stepIndex % 2 === 1 ? swing * 0.5 * stepDurationMs : 0;
+      const timeMs = gridTimeMs + swingOffsetMs;
+
       if (onStepScheduled) onStepScheduled(stepIndex, timeMs);
 
       if (!pattern.active[stepIndex]) return;
@@ -68,7 +87,6 @@
       const note = pattern.note[stepIndex];
       const velocity = pattern.velocity[stepIndex];
       const gate = pattern.gate[stepIndex];
-      const stepDurationMs = secondsPerStep() * 1000;
       const noteDurationMs = Math.max(15, gate * stepDurationMs);
 
       midi.noteOn(note, velocity, timeMs);
@@ -102,6 +120,7 @@
     return {
       setPattern,
       setTempo,
+      setSwing,
       start,
       stop,
       get isPlaying() { return isPlaying; },

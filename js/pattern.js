@@ -42,6 +42,25 @@
     return JSON.parse(JSON.stringify(pattern));
   }
 
+  /**
+   * Rota el patrón `amount` pasos (positivo = hacia adelante en el tiempo,
+   * negativo = hacia atrás), con wrap-around. Muta el patrón en el lugar
+   * (mismo objeto), así el scheduler ve el cambio sin necesidad de
+   * reasignarlo. Rota TODAS las capas juntas para que no se desalineen.
+   */
+  function rotate(pattern, amount) {
+    const n = pattern.steps;
+    const shift = ((amount % n) + n) % n;
+    if (shift === 0) return pattern;
+    ['note', 'velocity', 'gate', 'accent', 'active'].forEach((key) => {
+      const source = pattern[key].slice();
+      for (let i = 0; i < n; i++) {
+        pattern[key][(i + shift) % n] = source[i];
+      }
+    });
+    return pattern;
+  }
+
   function toJSON(pattern) {
     return JSON.stringify(pattern, null, 2);
   }
@@ -54,6 +73,7 @@
   global.BG.Pattern = {
     createEmptyPattern,
     clonePattern,
+    rotate,
     toJSON,
     fromJSON,
   };

@@ -51,6 +51,13 @@
     ui.renderPattern(p);
   }
 
+  /** Rota el patrón actual (en el lugar) y refresca la vista. */
+  function shiftPattern(amount) {
+    if (!currentPattern) return;
+    window.BG.Pattern.rotate(currentPattern, amount);
+    ui.renderPattern(currentPattern);
+  }
+
   function randomSeed() {
     const newSeed = Math.floor(Math.random() * 1_000_000);
     ui.setSeed(newSeed);
@@ -98,6 +105,7 @@
     ui.dom.btnPlay.addEventListener('click', () => {
       if (!currentPattern) generateAndLoad();
       sequencer.setTempo(ui.readTempo());
+      sequencer.setSwing(ui.readSwing());
       sequencer.start();
       ui.setPlayingState(true);
     });
@@ -110,6 +118,9 @@
     ui.dom.btnPanic.addEventListener('click', () => midi.panic());
 
     ui.dom.tempo.addEventListener('change', () => sequencer.setTempo(ui.readTempo()));
+    ui.dom.swing.addEventListener('input', () => sequencer.setSwing(ui.readSwing()));
+    ui.dom.btnShiftLeft.addEventListener('click', () => shiftPattern(-1));
+    ui.dom.btnShiftRight.addEventListener('click', () => shiftPattern(1));
     ui.dom.midiOutput.addEventListener('change', applyMidiSelection);
     ui.dom.midiChannel.addEventListener('change', applyMidiSelection);
 

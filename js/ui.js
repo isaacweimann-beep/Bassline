@@ -72,6 +72,10 @@
       btnStop: $('btnStop'),
       btnPanic: $('btnPanic'),
       tempo: $('tempo'),
+      swing: $('swing'),
+      swingValue: $('swingValue'),
+      btnShiftLeft: $('btnShiftLeft'),
+      btnShiftRight: $('btnShiftRight'),
       midiOutput: $('midiOutput'),
       midiChannel: $('midiChannel'),
 
@@ -193,6 +197,10 @@
       return Number(dom.tempo.value);
     }
 
+    function readSwing() {
+      return Number(dom.swing.value);
+    }
+
     function setSeed(seedValue) {
       dom.seed.value = seedValue;
     }
@@ -210,6 +218,7 @@
       bindLiveValue(dom.complexity, dom.complexityValue, '%');
       bindLiveValue(dom.rests, dom.restsValue, '%');
       bindLiveValue(dom.accentAmount, dom.accentAmountValue, '%');
+      bindLiveValue(dom.swing, dom.swingValue, '%');
     }
 
     // --- Render del step sequencer (solo visual en V0.1, sin edición) ---
@@ -358,6 +367,7 @@
       setMidiStatus,
       readGeneratorParams,
       readTempo,
+      readSwing,
       setSeed,
       bindKnobDisplays,
       bindToggleButton,

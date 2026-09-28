@@ -201,6 +201,74 @@ async function run() {
 
   doc.getElementById('btnLockPitch').click(); // dejar los locks apagados
 
+  // --- Shift: rotar el patrón un paso con los botones ---
+  seedInput.value = '555';
+  doc.getElementById('btnGenerate').click();
+  const notesBeforeShift = snapshotSteps();
+  const n = notesBeforeShift.length;
+
+  doc.getElementById('btnShiftRight').click();
+  const notesAfterShiftRight = snapshotSteps();
+  const shiftRightOk = notesBeforeShift.every((s, i) => {
+    const moved = notesAfterShiftRight[(i + 1) % n];
+    return moved.active === s.active && moved.note === s.note;
+  });
+  assert(shiftRightOk, 'shift +1 debería mover cada paso una posición hacia adelante (con wrap-around)');
+  console.log('OK: shift +1 rota el patrón un paso hacia adelante, con wrap-around');
+
+  doc.getElementById('btnShiftLeft').click();
+  const notesAfterShiftLeft = snapshotSteps();
+  assert(JSON.stringify(notesAfterShiftLeft) === JSON.stringify(notesBeforeShift), 'shift -1 después de shift +1 debería restaurar el patrón original');
+  console.log('OK: shift -1 deshace shift +1');
+
+  // --- Swing: el slider muestra su valor, y el scheduler retrasa los pasos impares ---
+  const swingInput = doc.getElementById('swing');
+  swingInput.value = '60';
+  swingInput.dispatchEvent(new window.Event('input', { bubbles: true }));
+  assert(doc.getElementById('swingValue').textContent === '60%', 'el slider de swing debería mostrar su valor actual');
+  console.log('OK: el slider de swing muestra su valor (60%)');
+
+  // Timing exacto: sequencer real + MIDI falso que registra timestamps.
+  async function captureNoteOnTimes(swingPercent) {
+    const times = [];
+    const stubMidi = {
+      noteOn(note, vel, t) { times.push(t); },
+      noteOff() {},
+      panic() {},
+    };
+    const seq = window.BG.Sequencer.createSequencer(stubMidi);
+    const allActive = window.BG.Generator.generate({
+      steps: 16, rate: '1/16', root: 0, scale: 'Natural Minor',
+      octave: 2, octaveMin: 0, octaveMax: 0,
+      density: 1, complexity: 1, rests: 0, accentAmount: 0,
+      velocityBase: 100, velocityAccentBoost: 0, seed: 1,
+    });
+    seq.setPattern(allActive);
+    seq.setTempo(120); // 1/16 a 120 bpm => cada paso dura 125 ms
+    seq.setSwing(swingPercent);
+    seq.start();
+    await wait(700);
+    seq.stop();
+    return times;
+  }
+
+  const stepMs = 125;
+  const straight = await captureNoteOnTimes(0);
+  assert(straight.length >= 5, 'debería haberse agendado al menos 5 notas, hubo ' + straight.length);
+  for (let i = 1; i < 5; i++) {
+    const gap = straight[i] - straight[i - 1];
+    assert(Math.abs(gap - stepMs) < 0.01, 'con swing 0 todos los pasos deberían distar 125ms, distó ' + gap);
+  }
+  console.log('OK: con swing 0% los pasos caen exactamente en la grilla recta (125 ms)');
+
+  const swung = await captureNoteOnTimes(100);
+  const evenToOdd = swung[1] - swung[0];   // paso par -> impar: se estira
+  const oddToEven = swung[2] - swung[1];   // paso impar -> par: se acorta
+  assert(Math.abs(evenToOdd - stepMs * 1.5) < 0.01, 'con swing 100% el offbeat debería caer 62.5ms más tarde (intervalo 187.5ms), fue ' + evenToOdd);
+  assert(Math.abs(oddToEven - stepMs * 0.5) < 0.01, 'y el paso siguiente debería llegar 62.5ms después (intervalo 62.5ms), fue ' + oddToEven);
+  assert(Math.abs((swung[2] - swung[0]) - stepMs * 2) < 0.01, 'cada par de pasos debería seguir durando lo mismo (250ms): el swing no acumula deriva');
+  console.log('OK: con swing 100% el offbeat se retrasa (' + evenToOdd.toFixed(1) + ' ms / ' + oddToEven.toFixed(1) + ' ms) y el par completo sigue durando 250 ms');
+
   console.log('\nTODOS LOS TESTS PASARON ✔');
 }
 
