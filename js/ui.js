@@ -159,6 +159,7 @@
       rootNote: $('rootNote'),
       scale: $('scale'),
       octave: $('octave'),
+      octaveValue: $('octaveValue'),
       octaveMin: $('octaveMin'),
       octaveMax: $('octaveMax'),
       steps: $('steps'),
@@ -216,7 +217,7 @@
     function populateStaticOptions() {
       fillSelect(dom.rootNote, Scales.NOTE_NAMES.map((name, i) => ({ value: i, label: name })));
       fillSelect(dom.scale, Scales.SCALE_NAMES.map((name) => ({ value: name, label: name })));
-      fillSelect(dom.octave, range(0, 6).map((o) => ({ value: o, label: 'octava ' + o })), 2);
+      dom.octave.value = 2;
       fillSelect(dom.octaveMin, range(-2, 0).map((o) => ({ value: o, label: (o > 0 ? '+' : '') + o })), -1);
       fillSelect(dom.octaveMax, range(0, 2).map((o) => ({ value: o, label: (o > 0 ? '+' : '') + o })), 1);
       fillSelect(dom.steps, [8, 16, 32].map((s) => ({ value: s, label: s + ' pasos' })), 16);
@@ -354,6 +355,65 @@
       bindLiveValue(dom.weightThird, dom.weightThirdValue, '');
       bindLiveValue(dom.weightOther, dom.weightOtherValue, '');
       bindLiveValue(dom.variationAmount, dom.variationAmountValue, '%');
+      bindLiveValue(dom.octave, dom.octaveValue, '');
+
+      [dom.swing, dom.density, dom.complexity, dom.rests, dom.accentAmount,
+        dom.weightRoot, dom.weightFifth, dom.weightThird, dom.weightOther,
+        dom.variationAmount].forEach(enhanceAsDial);
+    }
+
+    // Mantiene cada <input type="range"> como fuente del valor y de sus
+    // eventos; el dial solo cambia la forma de interacción y presentación.
+    function enhanceAsDial(inputEl) {
+      const dial = document.createElement('span');
+      dial.className = 'dial';
+      const indicator = document.createElement('span');
+      indicator.className = 'dial__indicator';
+      dial.appendChild(indicator);
+      inputEl.parentNode.insertBefore(dial, inputEl);
+      dial.appendChild(inputEl);
+      inputEl.classList.add('dial__input');
+      inputEl.setAttribute('aria-valuetext', inputEl.value);
+      if (inputEl.parentElement.parentElement.classList.contains('field')) {
+        inputEl.parentElement.parentElement.classList.add('field--dial');
+      }
+
+      const update = () => {
+        const min = Number(inputEl.min || 0);
+        const max = Number(inputEl.max || 100);
+        const progress = max === min ? 0 : clamp((Number(inputEl.value) - min) / (max - min), 0, 1);
+        dial.style.setProperty('--dial-progress', (progress * 75) + '%');
+        dial.style.setProperty('--dial-angle', (-135 + progress * 270) + 'deg');
+        inputEl.setAttribute('aria-valuetext', inputEl.value);
+      };
+
+      function setFromPointer(event) {
+        const rect = dial.getBoundingClientRect();
+        const x = event.clientX - (rect.left + rect.width / 2);
+        const y = event.clientY - (rect.top + rect.height / 2);
+        let angle = (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+        if (angle >= 45 && angle <= 135) return;
+        if (angle <= 45) angle += 360;
+        const progress = clamp((angle - 135) / 270, 0, 1);
+        const min = Number(inputEl.min || 0);
+        const max = Number(inputEl.max || 100);
+        const step = Number(inputEl.step || 1);
+        const raw = min + progress * (max - min);
+        const value = min + Math.round((raw - min) / step) * step;
+        inputEl.value = String(clamp(value, min, max));
+        inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+
+      dial.addEventListener('pointerdown', (event) => {
+        event.preventDefault();
+        dial.setPointerCapture(event.pointerId);
+        setFromPointer(event);
+      });
+      dial.addEventListener('pointermove', (event) => {
+        if (dial.hasPointerCapture(event.pointerId)) setFromPointer(event);
+      });
+      inputEl.addEventListener('input', update);
+      update();
     }
 
     // --- Tooltip flotante con el nombre de nota, visible mientras se arrastra la curva ---

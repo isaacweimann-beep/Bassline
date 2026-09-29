@@ -845,3 +845,114 @@ input[type='range']::-moz-range-thumb {
     margin-left: 0;
   }
 }
+
+/* Final overrides for the compact layout and dial controls */
+.panel--musical {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-content: center;
+  gap: 0.7rem 0.65rem;
+}
+
+.panel--musical .field__select { width: 100%; }
+.panel--musical .range-pair { min-width: 0; }
+.panel--musical .range-pair .field__select { flex: 1 1 0; }
+
+.field--octave {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.15rem 0.35rem;
+}
+.field--octave .field__label { grid-column: 1; }
+.field--octave .field__value { grid-column: 2; grid-row: 1; }
+.field--octave input[type='range'] {
+  grid-column: 1 / -1;
+  width: 100%;
+}
+
+.field--dial {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.12rem 0.3rem;
+  min-width: 0;
+}
+.field--dial .field__label { grid-column: 1; }
+.field--dial .field__value { grid-column: 2; grid-row: 1; }
+
+.knob-field .dial,
+.field--dial .dial {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  justify-self: center;
+}
+
+.dial {
+  width: 38px;
+  height: 38px;
+  position: relative;
+  display: inline-block;
+  flex: 0 0 38px;
+  border-radius: 50%;
+  cursor: ns-resize;
+  touch-action: none;
+  user-select: none;
+}
+
+.dial::before,
+.dial::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+.dial::before {
+  inset: 0;
+  background: conic-gradient(from 135deg, var(--amber) 0 var(--dial-progress), var(--line) var(--dial-progress) 75%, transparent 75%);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
+}
+.dial::after {
+  inset: 5px;
+  z-index: 1;
+  background: linear-gradient(145deg, #393540, var(--panel-raised) 65%);
+  border: 1px solid var(--line);
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.08), 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+.dial__indicator {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  left: calc(50% - 1px);
+  width: 2px;
+  height: 10px;
+  border-radius: 2px;
+  background: var(--amber);
+  transform-origin: 50% 100%;
+  transform: rotate(var(--dial-angle));
+  pointer-events: none;
+}
+.dial .dial__input {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  opacity: 0;
+  cursor: inherit;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.dial:focus-within {
+  outline: 2px solid var(--amber);
+  outline-offset: 2px;
+}
+
+@media (max-width: 480px) {
+  .panel--musical { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
