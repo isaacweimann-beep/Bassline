@@ -11,12 +11,49 @@
 
   const Scales = global.BG.Scales;
 
-  // Sensibilidad de los gestos de arrastre vertical sobre un paso.
-  const PITCH_DRAG_PX_PER_SEMITONE = 10; // cuántos px hay que mover para subir/bajar 1 semitono
+  // Sensibilidad de los gestos de arrastre vertical.
   const GATE_DRAG_PX_FULL_RANGE = 120;   // cuántos px de arrastre cubren todo el rango de gate
   const VELOCITY_DRAG_PX_FULL_RANGE = 120; // cuántos px de arrastre cubren todo el rango de velocity
   const GATE_MIN = 0.1;
   const GATE_MAX = 1.5;
+
+  // Sistema de coordenadas interno del SVG de la curva de pitch (unidades
+  // arbitrarias, no píxeles reales: el SVG se estira con preserveAspectRatio
+  //="none" para llenar el contenedor, así que esto es independiente del
+  // tamaño real en pantalla).
+  const CURVE_VIEW_W = 1000;
+  const CURVE_VIEW_H = 100;
+  const PITCH_RANGE_PADDING = 2; // semitonos de margen arriba/abajo del rango visible
+
+  function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+
+  /** Rango de notas (MIDI) a mostrar en la curva, con margen, a partir del patrón actual. */
+  function midiRangeForPattern(pattern) {
+    let min = Infinity, max = -Infinity;
+    for (let i = 0; i < pattern.steps; i++) {
+      const n = pattern.note[i];
+      if (n == null) continue;
+      if (n < min) min = n;
+      if (n > max) max = n;
+    }
+    if (!isFinite(min)) { min = 48; max = 60; }
+    if (min === max) { min -= 3; max += 3; }
+    return { min: min - PITCH_RANGE_PADDING, max: max + PITCH_RANGE_PADDING };
+  }
+
+  function midiToY(midi, range) {
+    const t = (midi - range.min) / (range.max - range.min);
+    return CURVE_VIEW_H - t * CURVE_VIEW_H; // más agudo = más arriba
+  }
+
+  function yToMidiRaw(y, range) {
+    const t = 1 - y / CURVE_VIEW_H;
+    return range.min + t * (range.max - range.min);
+  }
+
+  function stepXCenter(i, steps) {
+    return ((i + 0.5) / steps) * CURVE_VIEW_W;
+  }
 
   function $(id) { return document.getElementById(id); }
 
@@ -54,6 +91,43 @@
       document.addEventListener('mouseup', onUp);
     });
   }
+
+  /**
+   * Gesto de "pintar" continuo: a diferencia de attachDragHandlers, acá no
+   * se distingue click de drag — CADA mousedown/mousemove dispara onPaint
+   * de inmediato, con la posición relativa al elemento (x,y) y el evento
+   * crudo (para leer clientX/clientY, útil para posicionar un tooltip).
+   * Se usa en la curva de pitch: al arrastrar de lado a lado, cada paso
+   * por el que pasa el mouse toma la altura correspondiente a esa posición
+   * vertical — así se puede "dibujar" una melodía sin soltar el mouse.
+   */
+  function attachPaintDrag(el, handlers) {
+    function pointFromEvent(ev) {
+      const rect = el.getBoundingClientRect();
+      return { x: ev.clientX - rect.left, y: ev.clientY - rect.top, rect };
+    }
+
+    el.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      if (handlers.onDragStart) handlers.onDragStart();
+
+      function apply(ev) {
+        const p = pointFromEvent(ev);
+        handlers.onPaint(p.x, p.y, p.rect, ev);
+      }
+      apply(e);
+
+      function onMove(ev) { apply(ev); }
+      function onUp() {
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+        if (handlers.onDragEnd) handlers.onDragEnd();
+      }
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
+  }
+
 
   function clampGate(v) {
     return Math.max(GATE_MIN, Math.min(GATE_MAX, v));
@@ -116,12 +190,23 @@
       btnLockRhythm: $('btnLockRhythm'),
       btnLockPitch: $('btnLockPitch'),
 
-      stepGrid: $('stepGrid'),
-      stepGridEmpty: $('stepGridEmpty'),
+      noteDisplay: $('noteDisplay'),
+      noteDisplayEmpty: $('noteDisplayEmpty'),
+      pitchTooltip: $('pitchTooltip'),
     };
 
-    let stepEls = []; // referencias a los elementos de paso actualmente renderizados
-    let highlightedIndex = -1; // paso que está sonando (para re-aplicar el resaltado tras un re-render)
+    // El playhead es UN solo elemento persistente que se vuelve a insertar
+    // en el contenedor después de cada render (que limpia todo con
+    // innerHTML=''), en vez de recrearse — así la referencia nunca queda
+    // desactualizada.
+    const playheadEl = document.createElement('div');
+    playheadEl.className = 'playhead';
+    playheadEl.id = 'playhead';
+    playheadEl.style.display = 'none';
+    dom.noteDisplay.appendChild(playheadEl);
+
+    let highlightedIndex = -1; // paso que está sonando (-1 = ninguno)
+    let currentStepsCount = 16;
     let highlightTimeouts = [];
     let stepClickHandler = null; // callback(stepIndex) provisto por app.js
     let slotClickHandler = null; // callback(slotIndex) provisto por app.js
@@ -271,108 +356,173 @@
       bindLiveValue(dom.variationAmount, dom.variationAmountValue, '%');
     }
 
-    // --- Render del step sequencer (solo visual en V0.1, sin edición) ---
+    // --- Tooltip flotante con el nombre de nota, visible mientras se arrastra la curva ---
 
-    function renderPattern(pattern) {
-      dom.stepGrid.innerHTML = '';
-      dom.stepGrid.style.setProperty('--steps', pattern.steps);
-      stepEls = [];
+    function showPitchTooltip() { dom.pitchTooltip.hidden = false; }
+    function hidePitchTooltip() { dom.pitchTooltip.hidden = true; }
+    function updatePitchTooltip(clientX, clientY, midi, stepIndex) {
+      dom.pitchTooltip.textContent = Scales.midiToNoteName(midi) + ' (paso ' + (stepIndex + 1) + ')';
+      dom.pitchTooltip.style.left = (clientX + 14) + 'px';
+      dom.pitchTooltip.style.top = (clientY - 28) + 'px';
+    }
+
+    // --- Curva de pitch: SVG con una polilínea + un punto por paso ---
+
+    function buildPitchCurve(pattern) {
+      const ns = 'http://www.w3.org/2000/svg';
+      const svg = document.createElementNS(ns, 'svg');
+      svg.setAttribute('class', 'pitch-curve');
+      svg.setAttribute('viewBox', '0 0 ' + CURVE_VIEW_W + ' ' + CURVE_VIEW_H);
+      svg.setAttribute('preserveAspectRatio', 'none');
+
+      const range = midiRangeForPattern(pattern);
+      const points = [];
+      const circles = [];
+
+      const polyline = document.createElementNS(ns, 'polyline');
+      polyline.setAttribute('class', 'pitch-curve__line');
+
+      for (let i = 0; i < pattern.steps; i++) {
+        const x = stepXCenter(i, pattern.steps);
+        const y = midiToY(pattern.note[i], range);
+        points.push(x + ',' + y);
+
+        const circle = document.createElementNS(ns, 'circle');
+        circle.setAttribute('cx', x);
+        circle.setAttribute('cy', y);
+        circle.setAttribute('r', 3.2);
+        circle.dataset.step = i;
+        circle.dataset.midi = pattern.note[i];
+        circle.setAttribute('class', 'pitch-curve__dot'
+          + (i % 2 === 0 ? ' pitch-curve__dot--onbeat' : ' pitch-curve__dot--offbeat')
+          + (pattern.active[i] ? '' : ' pitch-curve__dot--rest'));
+        circles.push(circle);
+      }
+
+      polyline.setAttribute('points', points.join(' '));
+      svg.appendChild(polyline);
+      circles.forEach((c) => svg.appendChild(c));
+
+      attachPaintDrag(svg, {
+        onDragStart: showPitchTooltip,
+        onDragEnd: hidePitchTooltip,
+        onPaint: (x, y, rect, ev) => {
+          const vbX = clamp((x / rect.width) * CURVE_VIEW_W, 0, CURVE_VIEW_W - 0.001);
+          const vbY = clamp((y / rect.height) * CURVE_VIEW_H, 0, CURVE_VIEW_H);
+          const stepIndex = clamp(Math.floor(vbX / (CURVE_VIEW_W / pattern.steps)), 0, pattern.steps - 1);
+          const rawMidi = yToMidiRaw(vbY, range);
+          const quantized = Scales.quantizeToScale(Math.round(rawMidi), pattern.root, pattern.scale);
+
+          pattern.note[stepIndex] = quantized;
+
+          const newY = midiToY(quantized, range);
+          circles[stepIndex].setAttribute('cy', newY);
+          circles[stepIndex].dataset.midi = quantized;
+          points[stepIndex] = stepXCenter(stepIndex, pattern.steps) + ',' + newY;
+          polyline.setAttribute('points', points.join(' '));
+
+          updatePitchTooltip(ev.clientX, ev.clientY, quantized, stepIndex);
+        },
+      });
+
+      return svg;
+    }
+
+    // --- Note row: un punto chico por paso. Click = on/off, drag = velocity ---
+
+    function buildNoteRow(pattern) {
+      const row = document.createElement('div');
+      row.className = 'note-row';
 
       for (let i = 0; i < pattern.steps; i++) {
         const isOnbeat = i % 2 === 0;
         const active = pattern.active[i];
 
-        const stepEl = document.createElement('div');
-        stepEl.className = 'step' + (isOnbeat ? ' step--onbeat' : ' step--offbeat') + (active ? '' : ' step--rest');
+        const dot = document.createElement('div');
+        dot.className = 'note-dot' + (isOnbeat ? ' note-dot--onbeat' : ' note-dot--offbeat')
+          + (active ? '' : ' note-dot--rest')
+          + (pattern.accent[i] ? ' note-dot--accent' : '');
+        dot.dataset.step = i;
+        dot.dataset.active = String(active);
+        dot.dataset.velocity = pattern.velocity[i];
+        dot.title = 'Click: activar/desactivar · Arrastrar: velocity';
 
-        const number = document.createElement('div');
-        number.className = 'step__number';
-        number.textContent = String(i + 1).padStart(2, '0');
-
-        // --- Zona de nota: click activa/desactiva, drag vertical cambia el tono ---
-        const note = document.createElement('div');
-        note.className = 'step__note';
-        note.title = 'Click: activar/desactivar · Arrastrar: cambiar nota';
-        note.textContent = active ? Scales.midiToNoteName(pattern.note[i]) : '--';
-
-        let dragBaseNote = null;
-        attachDragHandlers(note, {
-          onClick: () => { if (stepClickHandler) stepClickHandler(i); },
-          onDragStart: () => { dragBaseNote = pattern.note[i]; },
-          onDrag: (deltaY) => {
-            if (!pattern.active[i] || dragBaseNote == null) return;
-            const semitoneDelta = Math.round(-deltaY / PITCH_DRAG_PX_PER_SEMITONE);
-            const target = dragBaseNote + semitoneDelta;
-            const quantized = Scales.quantizeToScale(target, pattern.root, pattern.scale);
-            pattern.note[i] = quantized;
-            note.textContent = Scales.midiToNoteName(quantized);
-          },
-        });
-
-        // --- Barra de velocity: drag vertical la modifica ---
-        const velWrap = document.createElement('div');
-        velWrap.className = 'step__vel';
-        velWrap.title = 'Arrastrar: velocity';
-        const velFill = document.createElement('div');
-        velFill.className = 'step__vel-fill';
-        velFill.style.height = active ? Math.round((pattern.velocity[i] / 127) * 100) + '%' : '0%';
-        velWrap.appendChild(velFill);
+        const fill = document.createElement('div');
+        fill.className = 'note-dot__fill';
+        const size = active ? 3 + Math.round((pattern.velocity[i] / 127) * 9) : 0;
+        fill.style.width = size + 'px';
+        fill.style.height = size + 'px';
+        dot.appendChild(fill);
 
         let dragBaseVelocity = null;
-        attachDragHandlers(velWrap, {
+        attachDragHandlers(dot, {
+          onClick: () => { if (stepClickHandler) stepClickHandler(i); },
           onDragStart: () => { dragBaseVelocity = pattern.velocity[i]; },
           onDrag: (deltaY) => {
             if (!pattern.active[i] || dragBaseVelocity == null) return;
             const newVel = clampVelocity(dragBaseVelocity + (-deltaY / VELOCITY_DRAG_PX_FULL_RANGE) * 127);
             pattern.velocity[i] = newVel;
-            velFill.style.height = Math.round((newVel / 127) * 100) + '%';
+            dot.dataset.velocity = newVel;
+            const s = 3 + Math.round((newVel / 127) * 9);
+            fill.style.width = s + 'px';
+            fill.style.height = s + 'px';
           },
         });
 
-        // --- Barra de gate/duración: drag vertical la modifica ---
-        const gateWrap = document.createElement('div');
-        gateWrap.className = 'step__gate';
-        gateWrap.title = 'Arrastrar: duración de la nota (gate)';
-        const gateFill = document.createElement('div');
-        gateFill.className = 'step__gate-fill';
-        gateFill.style.height = active ? Math.round((pattern.gate[i] / GATE_MAX) * 100) + '%' : '0%';
-        gateWrap.appendChild(gateFill);
+        row.appendChild(dot);
+      }
+
+      return row;
+    }
+
+    // --- Gate row: una barra fina por paso, drag vertical cambia la duración ---
+
+    function buildGateRow(pattern) {
+      const row = document.createElement('div');
+      row.className = 'gate-row';
+
+      for (let i = 0; i < pattern.steps; i++) {
+        const active = pattern.active[i];
+
+        const bar = document.createElement('div');
+        bar.className = 'gate-bar' + (active ? '' : ' gate-bar--rest');
+        bar.dataset.step = i;
+        bar.dataset.gate = pattern.gate[i];
+        bar.title = 'Arrastrar: duración de la nota (gate)';
+
+        const fill = document.createElement('div');
+        fill.className = 'gate-bar__fill';
+        fill.style.height = active ? Math.round((pattern.gate[i] / GATE_MAX) * 100) + '%' : '0%';
+        bar.appendChild(fill);
 
         let dragBaseGate = null;
-        attachDragHandlers(gateWrap, {
+        attachDragHandlers(bar, {
           onDragStart: () => { dragBaseGate = pattern.gate[i]; },
           onDrag: (deltaY) => {
             if (!pattern.active[i] || dragBaseGate == null) return;
             const newGate = clampGate(dragBaseGate + (-deltaY / GATE_DRAG_PX_FULL_RANGE) * (GATE_MAX - GATE_MIN));
             pattern.gate[i] = newGate;
-            gateFill.style.height = Math.round((newGate / GATE_MAX) * 100) + '%';
+            bar.dataset.gate = newGate;
+            fill.style.height = Math.round((newGate / GATE_MAX) * 100) + '%';
           },
         });
 
-        const barsWrap = document.createElement('div');
-        barsWrap.className = 'step__bars';
-        barsWrap.appendChild(velWrap);
-        barsWrap.appendChild(gateWrap);
-
-        const accent = document.createElement('div');
-        accent.className = 'step__accent' + (pattern.accent[i] ? ' step__accent--on' : '');
-
-        stepEl.appendChild(number);
-        stepEl.appendChild(note);
-        stepEl.appendChild(barsWrap);
-        stepEl.appendChild(accent);
-
-        dom.stepGrid.appendChild(stepEl);
-        stepEls.push(stepEl);
+        row.appendChild(bar);
       }
 
-      // Tras un re-render (p.ej. regeneración en vivo mientras suena) los
-      // elementos son nuevos: volvemos a marcar el paso que está sonando.
-      if (highlightedIndex >= 0 && stepEls[highlightedIndex]) {
-        stepEls[highlightedIndex].classList.add('step--playing');
-      }
+      return row;
+    }
 
-      dom.stepGridEmpty.style.display = 'none';
+    function renderPattern(pattern) {
+      currentStepsCount = pattern.steps;
+      dom.noteDisplay.innerHTML = '';
+
+      dom.noteDisplay.appendChild(buildPitchCurve(pattern));
+      dom.noteDisplay.appendChild(buildNoteRow(pattern));
+      dom.noteDisplay.appendChild(buildGateRow(pattern));
+      dom.noteDisplay.appendChild(playheadEl); // innerHTML='' lo desprendió: se vuelve a insertar
+
+      updatePlayheadPosition();
     }
 
     /**
@@ -393,16 +543,28 @@
 
     function highlightStep(stepIndex) {
       highlightedIndex = stepIndex;
-      stepEls.forEach((el) => el.classList.remove('step--playing'));
-      const el = stepEls[stepIndex];
-      if (el) el.classList.add('step--playing');
+      updatePlayheadPosition();
+    }
+
+    function updatePlayheadPosition() {
+      if (highlightedIndex < 0 || currentStepsCount <= 0) {
+        playheadEl.style.display = 'none';
+        delete playheadEl.dataset.step;
+        return;
+      }
+      const pct = (highlightedIndex / currentStepsCount) * 100;
+      const widthPct = 100 / currentStepsCount;
+      playheadEl.style.left = pct + '%';
+      playheadEl.style.width = widthPct + '%';
+      playheadEl.style.display = 'block';
+      playheadEl.dataset.step = String(highlightedIndex);
     }
 
     function clearHighlightTimeouts() {
       highlightTimeouts.forEach((id) => clearTimeout(id));
       highlightTimeouts = [];
       highlightedIndex = -1;
-      stepEls.forEach((el) => el.classList.remove('step--playing'));
+      updatePlayheadPosition();
     }
 
     /**

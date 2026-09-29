@@ -24,13 +24,14 @@ navegador: el sonido sale siempre de tu hardware.
 - Scheduler MIDI con look-ahead scheduling (clock de referencia de alta resolución + agendado anticipado de Note On/Off), para timing estable.
 - Selector de dispositivo/canal MIDI, con apagado de seguridad de todas las notas activas al parar, cambiar de patrón, cambiar de dispositivo/canal o cerrar la pestaña.
 
-## Edición manual de pasos
+## Note Display (curva de pitch / note row / gate row)
 
-- **Click** sobre el pad de la nota (el recuadro grande con el nombre): prende/apaga el paso. Ámbar = paso fuerte, verde azulado = paso débil, borde punteado = apagado.
-- **Arrastrar verticalmente** sobre ese mismo pad: cambia el tono (siempre dentro de la escala elegida).
-- **Arrastrar** la barra de **velocity** (celeste/ámbar): cambia la velocity.
-- **Arrastrar** la barra de **gate** (violeta): cambia la duración de la nota (0.1x a 1.5x la duración del paso).
-- Se puede editar con el patrón sonando: el cambio se escucha en la siguiente pasada.
+Rediseñado inspirándose en el Note Display del manual de Reason (no en su código ni sus gráficos, que son propietarios): tres franjas finas en vez de pads grandes.
+
+- **Curva de pitch** (franja de arriba, con línea): arrastrá verticalmente en cualquier punto para cambiar el tono de ese paso — siempre cuantizado a la escala elegida. Como es una curva continua, podés "dibujar" arrastrando de lado a lado sin soltar el mouse: cada paso por el que pasás toma la altura correspondiente. Mientras arrastrás aparece un tooltip flotante con el nombre de la nota.
+- **Note row** (fila de puntitos): **click** prende/apaga el paso. **Arrastrar verticalmente** cambia la velocity — el tamaño del relleno del punto la representa (más relleno = más fuerte). Ámbar = paso fuerte, verde azulado = paso débil, borde rojo = acento, borde punteado = apagado.
+- **Gate row** (franja de abajo, barras finas): arrastrar verticalmente cambia la duración de la nota (0.1x a 1.5x la duración del paso).
+- Se puede editar con el patrón sonando: el cambio se escucha en la siguiente pasada, y una franja ámbar semitransparente (el "playhead") marca qué paso está sonando ahora, atravesando las 3 franjas.
 - **lock rhythm / lock pitch** (botones violetas): con uno activo, "Generate" conserva esa capa del patrón actual y solo regenera la otra. Si cambiás la cantidad de pasos, los locks se ignoran (los largos no coinciden).
 
 ## Slots de patrón

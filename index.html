@@ -185,12 +185,14 @@
       <button id="btnSaveSlot" type="button" class="btn btn--ghost btn--toggle btn--small" aria-pressed="false" title="Activar y después tocar un número para guardar el patrón actual ahí">save</button>
       <div class="slot-buttons" id="slotButtons"></div>
 
-      <span class="hint">pad: click = on/off, arrastrar = nota · barras: velocity / gate</span>
+      <span class="hint">nota: click = on/off, arrastrar = tono · fila de abajo: duración</span>
     </div>
-    <div class="step-grid" id="stepGrid">
-      <p class="step-grid__empty" id="stepGridEmpty">Presioná «Generate» para crear un patrón.</p>
+    <div class="note-display" id="noteDisplay">
+      <p class="note-display__empty" id="noteDisplayEmpty">Presioná «Generate» para crear un patrón.</p>
     </div>
   </section>
+
+  <div id="pitchTooltip" class="pitch-tooltip" hidden></div>
 
 </main>
 
