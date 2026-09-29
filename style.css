@@ -606,3 +606,242 @@ input[type='range']::-moz-range-thumb {
 .pitch-tooltip[hidden] {
   display: none;
 }
+
+/* -------------------------------------------------------------------- */
+/* Compact hardware-style layout                                         */
+/* -------------------------------------------------------------------- */
+:root {
+  --radius: 4px;
+}
+
+body {
+  font-size: 13px;
+  padding-bottom: 1.25rem;
+}
+
+.topbar {
+  padding: 0.65rem 1.25rem;
+}
+
+.rack {
+  max-width: 1280px;
+  padding: 0.8rem 1.25rem;
+  gap: 0.65rem;
+}
+
+.rack__columns {
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 0.65rem;
+}
+
+.panel {
+  padding: 1.05rem 0.8rem 0.7rem;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+}
+
+.panel::before {
+  left: 0.65rem;
+  padding: 0 0.35rem;
+  font-size: 0.6rem;
+}
+
+.control-row {
+  gap: 0.55rem;
+}
+
+.control-row--seed,
+.control-row--locks {
+  margin-top: 0.65rem;
+}
+
+.control-row--tools {
+  gap: 0.4rem;
+  margin-bottom: 0.65rem;
+}
+
+.control-row__spacer {
+  margin-left: 0.25rem;
+}
+
+.field {
+  gap: 0.18rem;
+  min-width: 0;
+}
+
+.field--grow {
+  min-width: 110px;
+}
+
+.field--range {
+  min-width: 105px;
+}
+
+.field__label {
+  font-size: 0.62rem;
+  letter-spacing: 0.07em;
+}
+
+.field__select,
+.field__number,
+.field__text {
+  min-height: 30px;
+  padding: 0.28rem 0.42rem;
+  font-size: 0.76rem;
+}
+
+.field__number {
+  width: 3.9rem;
+}
+
+.field__value {
+  font-size: 0.7rem;
+}
+
+.range-pair {
+  gap: 0.25rem;
+}
+
+.subhead {
+  margin: 0.65rem 0 0.1rem;
+  font-size: 0.62rem;
+}
+
+.hint {
+  font-size: 0.66rem;
+}
+
+input[type='range'] {
+  margin: 0.25rem 0;
+}
+
+input[type='range']::-webkit-slider-thumb {
+  width: 12px;
+  height: 12px;
+}
+
+input[type='range']::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+}
+
+.btn {
+  min-height: 30px;
+  padding: 0.34rem 0.72rem;
+  font-size: 0.76rem;
+}
+
+.btn--danger {
+  margin-left: auto;
+}
+
+.btn--small {
+  min-height: 26px;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.7rem;
+}
+
+.panel--musical {
+  display: grid;
+  grid-template-columns: 0.85fr 1.3fr 0.9fr 1.3fr 0.7fr 0.7fr;
+  align-items: end;
+  gap: 0.5rem;
+}
+
+.knob-row {
+  gap: 0.45rem;
+}
+
+.knob-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.15rem 0.35rem;
+  padding: 0.4rem 0.5rem 0.32rem;
+  min-width: 0;
+}
+
+.knob-field .field__label {
+  grid-column: 1;
+}
+
+.knob-field input[type='range'] {
+  grid-column: 1 / -1;
+  width: 100%;
+}
+
+.knob-field .field__value {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.slot-buttons {
+  gap: 0.2rem;
+}
+
+.slot-btn {
+  min-width: 1.7rem;
+  min-height: 26px;
+  padding: 0.18rem 0.35rem;
+}
+
+.pitch-curve {
+  height: 60px;
+}
+
+.note-row {
+  height: 22px;
+}
+
+.note-dot::before {
+  width: 10px;
+  height: 10px;
+}
+
+.gate-row {
+  height: 16px;
+  gap: 1px;
+}
+
+.note-display__empty {
+  font-size: 0.78rem;
+}
+
+@media (max-width: 1000px) {
+  .rack__columns {
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  }
+
+  .panel--musical {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .rack {
+    padding: 0.65rem;
+    gap: 0.6rem;
+  }
+
+  .rack__columns {
+    grid-template-columns: 1fr;
+  }
+
+  .topbar {
+    padding: 0.65rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .panel--musical {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .control-row--tools {
+    flex-wrap: wrap;
+  }
+
+  .hint {
+    width: 100%;
+    margin-left: 0;
+  }
+}
