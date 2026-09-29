@@ -15,6 +15,47 @@
 
   let currentPattern = null;
 
+  // Slots de patrón: 8 casilleros en memoria para guardar variantes y
+  // volver a ellas sin perderlas. `activeSlotIndex` es el slot cargado
+  // ahora mismo (-1 si el patrón actual no coincide con ningún slot
+  // guardado, p.ej. porque se generó o editó algo después de cargarlo).
+  const SLOT_COUNT = 8;
+  const patternSlots = new Array(SLOT_COUNT).fill(null);
+  let activeSlotIndex = -1;
+
+  function refreshSlotButtons() {
+    ui.renderSlotButtons(patternSlots.map((slot, i) => ({ filled: !!slot, active: i === activeSlotIndex })));
+  }
+
+  function markSlotDirty() {
+    if (activeSlotIndex !== -1) {
+      activeSlotIndex = -1;
+      refreshSlotButtons();
+    }
+  }
+
+  function onSlotClick(index) {
+    const saveArmed = ui.dom.btnSaveSlot.getAttribute('aria-pressed') === 'true';
+
+    if (saveArmed) {
+      if (!currentPattern) return;
+      patternSlots[index] = window.BG.Pattern.clonePattern(currentPattern);
+      activeSlotIndex = index;
+      ui.dom.btnSaveSlot.setAttribute('aria-pressed', 'false'); // un solo guardado por activación
+      refreshSlotButtons();
+      return;
+    }
+
+    const saved = patternSlots[index];
+    if (!saved) return; // slot vacío: no hay nada para cargar
+
+    currentPattern = window.BG.Pattern.clonePattern(saved); // clon: editar después no debe tocar lo guardado
+    activeSlotIndex = index;
+    ui.renderPattern(currentPattern);
+    sequencer.setPattern(currentPattern); // cargar un slot es un salto deliberado: reinicia posición, como Generate
+    refreshSlotButtons();
+  }
+
   function buildPattern() {
     const params = ui.readGeneratorParams();
     params.previousPattern = currentPattern; // para que los locks puedan reutilizarlo
@@ -24,6 +65,7 @@
   /** Generate explícito: patrón nuevo, la reproducción vuelve al paso 1. */
   function generateAndLoad() {
     currentPattern = buildPattern();
+    markSlotDirty();
     ui.renderPattern(currentPattern);
     sequencer.setPattern(currentPattern);
   }
@@ -35,6 +77,7 @@
    */
   function regenerateLive() {
     currentPattern = buildPattern();
+    markSlotDirty();
     ui.renderPattern(currentPattern);
     sequencer.replacePattern(currentPattern);
   }
@@ -64,6 +107,7 @@
   function toggleStep(index) {
     if (!currentPattern) return;
     const p = currentPattern;
+    markSlotDirty();
     p.active[index] = !p.active[index];
 
     if (p.active[index]) {
@@ -86,6 +130,7 @@
   /** Rota el patrón actual (en el lugar) y refresca la vista. */
   function shiftPattern(amount) {
     if (!currentPattern) return;
+    markSlotDirty();
     window.BG.Pattern.rotate(currentPattern, amount);
     ui.renderPattern(currentPattern);
   }
@@ -127,6 +172,8 @@
     ui.bindKnobDisplays();
     ui.bindToggleButton(ui.dom.btnLockRhythm);
     ui.bindToggleButton(ui.dom.btnLockPitch);
+    ui.bindToggleButton(ui.dom.btnSaveSlot);
+    ui.setSlotClickHandler(onSlotClick);
 
     // Regeneración en vivo: sliders del generator, selects musicales y seed.
     [
@@ -176,6 +223,7 @@
 
   function init() {
     ui.populateStaticOptions();
+    refreshSlotButtons();
     bindEvents();
     initMidi();
     generateAndLoad(); // arranca con un patrón ya generado, listo para tocar

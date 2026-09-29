@@ -625,3 +625,33 @@ input[type='range']:focus-visible,
   color: var(--text-muted);
   margin: 1.1rem 0 -0.35rem;
 }
+
+
+/* -------------------------------------------------------------------- */
+/* Slots de patrón                                                       */
+/* -------------------------------------------------------------------- */
+.control-row__spacer {
+  margin-left: 0.75rem;
+}
+
+.slot-buttons {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.slot-btn {
+  min-width: 2rem;
+  font-family: var(--font-mono);
+  padding: 0.3rem 0.5rem;
+}
+
+.slot-btn--filled {
+  border-color: var(--teal);
+  color: var(--teal);
+}
+
+.slot-btn--active {
+  border-color: var(--amber);
+  color: var(--amber);
+  background: rgba(232, 163, 61, 0.12);
+}

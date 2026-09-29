@@ -33,6 +33,15 @@ navegador: el sonido sale siempre de tu hardware.
 - Se puede editar con el patrón sonando: el cambio se escucha en la siguiente pasada.
 - **lock rhythm / lock pitch** (botones violetas): con uno activo, "Generate" conserva esa capa del patrón actual y solo regenera la otra. Si cambiás la cantidad de pasos, los locks se ignoran (los largos no coinciden).
 
+## Slots de patrón
+
+8 casilleros en memoria (se pierden al recargar la página; guardarlos en LocalStorage queda para más adelante) para guardar variantes del patrón:
+
+- **save** + tocar un número (1-8): guarda el patrón actual en ese slot (incluye toda edición manual) y se desarma solo.
+- Tocar un número sin "save" armado: carga esa variante. Si el slot está vacío, no hace nada.
+- Verde azulado = el slot tiene algo guardado. Ámbar = es el que está cargado ahora mismo (si editás o generás algo nuevo después, deja de marcarse como activo, porque ya no coincide con lo guardado).
+- Cargar un slot reinicia la reproducción desde el paso 1, igual que Generate.
+
 ## Variator
 
 Hace que la densidad varíe sola a lo largo del patrón, con una forma (**shape**) y una cantidad (**amount**, bipolar -100% a +100%):

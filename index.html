@@ -150,7 +150,7 @@
           <span class="field__label">shape</span>
           <select id="variationShape" class="field__select"></select>
         </label>
-        <label class="field field--grow">
+        <label class="field field--range field--grow">
           <span class="field__label">amount</span>
           <input type="range" id="variationAmount" min="-100" max="100" value="0" />
           <span class="field__value" id="variationAmountValue">0%</span>
@@ -180,6 +180,11 @@
       <span class="field__label">shift</span>
       <button id="btnShiftLeft" type="button" class="btn btn--ghost btn--small" title="Rotar el patrón un paso hacia atrás">-1</button>
       <button id="btnShiftRight" type="button" class="btn btn--ghost btn--small" title="Rotar el patrón un paso hacia adelante">+1</button>
+
+      <span class="field__label control-row__spacer">slots</span>
+      <button id="btnSaveSlot" type="button" class="btn btn--ghost btn--toggle btn--small" aria-pressed="false" title="Activar y después tocar un número para guardar el patrón actual ahí">save</button>
+      <div class="slot-buttons" id="slotButtons"></div>
+
       <span class="hint">pad: click = on/off, arrastrar = nota · barras: velocity / gate</span>
     </div>
     <div class="step-grid" id="stepGrid">

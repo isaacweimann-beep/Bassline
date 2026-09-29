@@ -77,6 +77,8 @@
       swingValue: $('swingValue'),
       btnShiftLeft: $('btnShiftLeft'),
       btnShiftRight: $('btnShiftRight'),
+      btnSaveSlot: $('btnSaveSlot'),
+      slotButtons: $('slotButtons'),
       midiOutput: $('midiOutput'),
       midiChannel: $('midiChannel'),
 
@@ -122,6 +124,7 @@
     let highlightedIndex = -1; // paso que está sonando (para re-aplicar el resaltado tras un re-render)
     let highlightTimeouts = [];
     let stepClickHandler = null; // callback(stepIndex) provisto por app.js
+    let slotClickHandler = null; // callback(slotIndex) provisto por app.js
 
     // --- Poblado de selects estáticos (independientes del Pattern) ---
 
@@ -402,6 +405,27 @@
       stepEls.forEach((el) => el.classList.remove('step--playing'));
     }
 
+    /**
+     * Dibuja los 8 botones de slot. `states` es un array de
+     * {filled, active}: filled = tiene un patrón guardado, active = es el
+     * que está cargado ahora mismo (para saber de un vistazo si lo que
+     * estás editando ya se guardó o se te va a perder si cambiás de slot).
+     */
+    function renderSlotButtons(states) {
+      dom.slotButtons.innerHTML = '';
+      states.forEach((state, i) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'btn btn--ghost btn--small slot-btn'
+          + (state.filled ? ' slot-btn--filled' : '')
+          + (state.active ? ' slot-btn--active' : '');
+        btn.textContent = String(i + 1);
+        btn.title = state.filled ? ('Cargar variante ' + (i + 1)) : 'Vacío — activá "save" y tocá acá para guardar';
+        btn.addEventListener('click', () => { if (slotClickHandler) slotClickHandler(i); });
+        dom.slotButtons.appendChild(btn);
+      });
+    }
+
     function setPlayingState(isPlaying) {
       dom.btnPlay.classList.toggle('btn--active', isPlaying);
       dom.btnPlay.textContent = isPlaying ? 'Playing…' : 'Play';
@@ -432,7 +456,9 @@
       renderPattern,
       scheduleStepHighlight,
       setPlayingState,
+      renderSlotButtons,
       setStepClickHandler(fn) { stepClickHandler = fn; },
+      setSlotClickHandler(fn) { slotClickHandler = fn; },
     };
   }
 
