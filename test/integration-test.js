@@ -40,7 +40,7 @@ window.navigator.requestMIDIAccess = async () => ({
 // Cargar los scripts de la app en orden, tal como hace index.html
 const scripts = [
   'js/scales.js', 'js/rng.js', 'js/pattern.js', 'js/generator.js',
-  'js/midi.js', 'js/clock.js', 'js/sequencer.js', 'js/ui.js', 'js/app.js',
+  'js/midi.js', 'js/clock.js', 'js/sequencer.js', 'js/ui.js', 'js/knob-ui.js', 'js/app.js',
 ];
 
 for (const rel of scripts) {
@@ -500,6 +500,58 @@ async function run() {
   assert(JSON.stringify(snapshotSteps()) === JSON.stringify(savedSnapshot), 'cargar el slot debería restaurar exactamente lo guardado (clon, no referencia)');
   assert(slotButtons()[3].classList.contains('slot-btn--active'), 'tras cargarlo, el slot 4 debería volver a verse como activo');
   console.log('OK: cargar un slot restaura exactamente lo guardado; la edición manual posterior no lo había alterado');
+
+  // --- Etapa 1 (rediseño visual): el knob de Onbeat mueve el mismo #density de siempre ---
+  function dragKnob(knobWrapEl, fromY, toY) {
+    knobWrapEl.dispatchEvent(new window.MouseEvent('mousedown', { clientY: fromY, bubbles: true }));
+    window.document.dispatchEvent(new window.MouseEvent('mousemove', { clientY: toY, bubbles: true }));
+    window.document.dispatchEvent(new window.MouseEvent('mouseup', { clientY: toY, bubbles: true }));
+  }
+
+  const densityInput = doc.getElementById('density');
+  const onbeatKnobEl = doc.querySelector('#mountDensityKnob .knob');
+  assert(onbeatKnobEl, 'debería haberse montado un knob visual para Onbeat (density)');
+  const densityBefore = Number(densityInput.value);
+  dragKnob(onbeatKnobEl, 200, 100); // arriba = sube el valor
+  const densityAfter = Number(densityInput.value);
+  assert(densityAfter > densityBefore, 'arrastrar el knob de Onbeat hacia arriba debería subir el #density real (antes: ' + densityBefore + ', después: ' + densityAfter + ')');
+  await wait(60);
+  console.log('OK: el knob visual de Onbeat mueve el mismo #density de siempre (' + densityBefore + ' -> ' + densityAfter + '), incluyendo la regeneración en vivo');
+
+  // --- Rest: un solo parámetro real, dos knobs espejados (uno por columna) ---
+  const restsInput = doc.getElementById('rests');
+  const restKnobA = doc.querySelector('#mountRestKnobA .knob');
+  const restKnobB = doc.querySelector('#mountRestKnobB .knob');
+  assert(restKnobA && restKnobB, 'debería haber un knob de Rest en cada columna (Onbeat y Offbeat)');
+  const restBefore = Number(restsInput.value);
+  dragKnob(restKnobA, 200, 140); // arriba = sube el valor
+  const restAfterDragA = Number(restsInput.value);
+  assert(restAfterDragA !== restBefore, 'arrastrar el knob de Rest de la columna Onbeat debería cambiar el #rests real');
+  const restKnobBValueText = restKnobB.querySelector('.knob__value').textContent;
+  assert(restKnobBValueText === String(Math.round(restAfterDragA)) + '%', 'el knob espejado de Rest en la columna Offbeat debería mostrar el mismo valor que acaba de cambiar en la columna Onbeat (están conectados al mismo #rests), mostró: ' + restKnobBValueText);
+  console.log('OK: Rest es un solo parámetro con dos knobs espejados — mover uno actualiza el otro (' + restBefore + ' -> ' + restAfterDragA + ')');
+
+  // --- Shape: el ciclador de iconos avanza el mismo #variationShape de siempre ---
+  const shapeSelect = doc.getElementById('variationShape');
+  const shapeButtonA = doc.querySelector('#mountShapeA .shape-cycler');
+  const shapeButtonB = doc.querySelector('#mountShapeB .shape-cycler');
+  assert(shapeButtonA && shapeButtonB, 'debería haber un ciclador de shape en cada columna');
+  const shapeBefore = shapeSelect.value;
+  shapeButtonA.click();
+  const shapeAfter = shapeSelect.value;
+  assert(shapeAfter !== shapeBefore, 'click en el ciclador de shape debería avanzar el #variationShape real (antes: ' + shapeBefore + ', después: ' + shapeAfter + ')');
+  assert(shapeButtonB.getAttribute('aria-label') === 'shape: ' + shapeAfter, 'el ciclador espejado de la otra columna debería reflejar el mismo shape actualizado');
+  console.log('OK: el ciclador de shape (icono) avanza el mismo #variationShape de siempre (' + shapeBefore + ' -> ' + shapeAfter + '), y el espejo se actualiza solo');
+
+  // --- Octava: el stepper vertical setea el mismo #octave de siempre ---
+  const octaveSelect = doc.getElementById('octave');
+  const octaveTicks = Array.from(doc.querySelectorAll('#mountOctaveStepper .v-stepper__tick'));
+  assert(octaveTicks.length === octaveSelect.options.length, 'debería haber un tick del stepper por cada opción real de octava');
+  const targetOctaveIndex = 4;
+  octaveTicks[targetOctaveIndex].click();
+  assert(octaveSelect.selectedIndex === targetOctaveIndex, 'click en un tick del stepper debería setear el #octave real a esa opción');
+  assert(octaveTicks[targetOctaveIndex].classList.contains('v-stepper__tick--active'), 'el tick clickeado debería marcarse como activo');
+  console.log('OK: el stepper vertical de octava setea el mismo #octave de siempre (índice ' + targetOctaveIndex + ')');
 
   console.log('\nTODOS LOS TESTS PASARON ✔');
 }

@@ -24,6 +24,21 @@ navegador: el sonido sale siempre de tu hardware.
 - Scheduler MIDI con look-ahead scheduling (clock de referencia de alta resolución + agendado anticipado de Note On/Off), para timing estable.
 - Selector de dispositivo/canal MIDI, con apagado de seguridad de todas las notas activas al parar, cambiar de patrón, cambiar de dispositivo/canal o cerrar la pestaña.
 
+## Rediseño visual — Etapa 1 (knobs, Onbeat/Offbeat, octava)
+
+Primera etapa de un rediseño puramente visual, inspirado en la organización del Bassline Generator de Reason (no en su código ni gráficos, que son propietarios). **Ningún parámetro, algoritmo ni comportamiento cambió** — solo la presentación.
+
+- **Onbeat / Offbeat**: density y complexity ahora son dos knobs circulares grandes, uno por columna (misma lógica de siempre: density = probabilidad en pasos fuertes, complexity = cuánto se contagia a los débiles).
+- **Rest / Accent**: siguen siendo un solo parámetro cada uno (no hay versión independiente por Onbeat/Offbeat en la lógica actual). Se muestran como **dos knobs espejados**, uno en cada columna, ambos conectados al mismo valor real — mover cualquiera de los dos mueve el mismo parámetro.
+- **Shape / Amount** (Variator): mismo caso — un solo Variator para todo el patrón, mostrado con un ciclador de iconos (click para pasar a la siguiente forma) y un knob chico de amount, espejados en las dos columnas.
+- **Pitch weights**: los mismos 4 parámetros (root/fifth/third/other), ahora como knobs chicos en una fila compacta.
+- **Octava**: mismo `<select>` de siempre (valores 0-6, la octava base absoluta), mostrado como un stepper vertical en vez de un dropdown horizontal. No es el "±2 shift" de Reason — ese es un parámetro distinto que nuestra lógica no tiene.
+- **Lock Rhythm / Lock Pitch**: mismos botones toggle de siempre, ahora con ícono en vez de texto.
+
+Cómo está hecho: cada control viejo (`<input>`/`<select>`) sigue existiendo en el HTML con el mismo id, oculto con CSS. Un módulo nuevo y separado, `js/knob-ui.js` (puramente presentacional), monta el widget visual y, cuando lo usás, actualiza ese mismo elemento oculto y dispara los mismos eventos `input`/`change` que ya escuchaba `app.js` — por eso no hizo falta tocar ninguna lógica, salvo una sola línea en `app.js` que activa esta capa.
+
+Pendiente para la próxima etapa (según lo charlado): RUN (reemplaza Play/Stop), Tempo compacto debajo de RUN, Steps/Shift/Rate/Shuffle como texto tipo display, MIDI Out/Canal detrás de un ícono de configuración, y compactar la zona del patrón.
+
 ## Note Display (curva de pitch / note row / gate row)
 
 Rediseñado inspirándose en el Note Display del manual de Reason (no en su código ni sus gráficos, que son propietarios): tres franjas finas en vez de pads grandes.

@@ -607,352 +607,263 @@ input[type='range']::-moz-range-thumb {
   display: none;
 }
 
+/* ====================================================================== */
+/* ETAPA 1 del rediseño visual: knobs, columnas Onbeat/Offbeat,           */
+/* stepper vertical de octava, selector de shape por iconos, locks.       */
+/* Ningún control de acá abajo tiene lógica propia: todos leen/escriben   */
+/* el <input>/<select> real (oculto) que ya existía.                      */
+/* ====================================================================== */
+
+/* Oculta el control original SIN afectar su .value ni sus event listeners.
+   !important porque, si no, reglas como .field{display:flex} (definidas
+   antes en este mismo archivo) le ganarían a esto por orden de cascada. */
+.knob-source-hidden,
+.gen-legacy {
+  display: none !important;
+}
+
 /* -------------------------------------------------------------------- */
-/* Compact hardware-style layout                                         */
+/* Root / Scale / Octave (panel "musical")                               */
 /* -------------------------------------------------------------------- */
-:root {
-  --radius: 4px;
+.tonal-layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.5rem;
 }
 
-body {
-  font-size: 13px;
-  padding-bottom: 1.25rem;
+.tonal-layout__main {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  flex: 1;
 }
 
-.topbar {
-  padding: 0.65rem 1.25rem;
-}
-
-.rack {
-  max-width: 1280px;
-  padding: 0.8rem 1.25rem;
-  gap: 0.65rem;
-}
-
-.rack__columns {
-  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
-  gap: 0.65rem;
-}
-
-.panel {
-  padding: 1.05rem 0.8rem 0.7rem;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
-}
-
-.panel::before {
-  left: 0.65rem;
-  padding: 0 0.35rem;
-  font-size: 0.6rem;
-}
-
-.control-row {
-  gap: 0.55rem;
-}
-
-.control-row--seed,
-.control-row--locks {
-  margin-top: 0.65rem;
-}
-
-.control-row--tools {
-  gap: 0.4rem;
-  margin-bottom: 0.65rem;
-}
-
-.control-row__spacer {
-  margin-left: 0.25rem;
-}
-
-.field {
-  gap: 0.18rem;
-  min-width: 0;
-}
-
-.field--grow {
-  min-width: 110px;
-}
-
-.field--range {
-  min-width: 105px;
-}
-
-.field__label {
-  font-size: 0.62rem;
-  letter-spacing: 0.07em;
-}
-
-.field__select,
-.field__number,
-.field__text {
-  min-height: 30px;
-  padding: 0.28rem 0.42rem;
-  font-size: 0.76rem;
-}
-
-.field__number {
-  width: 3.9rem;
-}
-
-.field__value {
-  font-size: 0.7rem;
-}
-
-.range-pair {
-  gap: 0.25rem;
-}
-
-.subhead {
-  margin: 0.65rem 0 0.1rem;
-  font-size: 0.62rem;
-}
-
-.hint {
-  font-size: 0.66rem;
-}
-
-input[type='range'] {
-  margin: 0.25rem 0;
-}
-
-input[type='range']::-webkit-slider-thumb {
-  width: 12px;
-  height: 12px;
-}
-
-input[type='range']::-moz-range-thumb {
-  width: 12px;
-  height: 12px;
-}
-
-.btn {
-  min-height: 30px;
-  padding: 0.34rem 0.72rem;
-  font-size: 0.76rem;
-}
-
-.btn--danger {
-  margin-left: auto;
-}
-
-.btn--small {
-  min-height: 26px;
-  padding: 0.2rem 0.5rem;
-  font-size: 0.7rem;
-}
-
-.panel--musical {
-  display: grid;
-  grid-template-columns: 0.85fr 1.3fr 0.9fr 1.3fr 0.7fr 0.7fr;
-  align-items: end;
-  gap: 0.5rem;
-}
-
-.knob-row {
-  gap: 0.45rem;
-}
-
-.knob-field {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+.tonal-layout__octave {
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 0.15rem 0.35rem;
-  padding: 0.4rem 0.5rem 0.32rem;
-  min-width: 0;
+  gap: 0.35rem;
 }
 
-.knob-field .field__label {
-  grid-column: 1;
+.field--compact {
+  min-width: 92px;
 }
 
-.knob-field input[type='range'] {
-  grid-column: 1 / -1;
-  width: 100%;
-}
-
-.knob-field .field__value {
-  grid-column: 2;
-  grid-row: 1;
-}
-
-.slot-buttons {
-  gap: 0.2rem;
-}
-
-.slot-btn {
-  min-width: 1.7rem;
-  min-height: 26px;
-  padding: 0.18rem 0.35rem;
-}
-
-.pitch-curve {
-  height: 60px;
-}
-
-.note-row {
-  height: 22px;
-}
-
-.note-dot::before {
-  width: 10px;
-  height: 10px;
-}
-
-.gate-row {
-  height: 16px;
-  gap: 1px;
-}
-
-.note-display__empty {
+.field--compact .field__select {
+  padding: 0.4rem 0.5rem;
   font-size: 0.78rem;
 }
 
-@media (max-width: 1000px) {
-  .rack__columns {
-    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
-  }
-
-  .panel--musical {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
+/* -------------------------------------------------------------------- */
+/* Stepper vertical (octava)                                             */
+/* -------------------------------------------------------------------- */
+.v-stepper {
+  display: flex;
+  flex-direction: column-reverse; /* valor más alto arriba, como en hardware */
+  gap: 2px;
+  background: var(--panel-raised);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+  padding: 3px;
 }
 
-@media (max-width: 760px) {
-  .rack {
-    padding: 0.65rem;
-    gap: 0.6rem;
-  }
-
-  .rack__columns {
-    grid-template-columns: 1fr;
-  }
-
-  .topbar {
-    padding: 0.65rem;
-  }
+.v-stepper__tick {
+  width: 28px;
+  height: 20px;
+  border: none;
+  background: transparent;
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  cursor: pointer;
+  border-radius: 2px;
 }
 
-@media (max-width: 480px) {
-  .panel--musical {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .control-row--tools {
-    flex-wrap: wrap;
-  }
-
-  .hint {
-    width: 100%;
-    margin-left: 0;
-  }
+.v-stepper__tick:hover {
+  color: var(--text);
 }
 
-/* Final overrides for the compact layout and dial controls */
-.panel--musical {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  align-content: center;
-  gap: 0.7rem 0.65rem;
+.v-stepper__tick--active {
+  background: var(--amber);
+  color: #1c1408;
+  font-weight: 700;
 }
 
-.panel--musical .field__select { width: 100%; }
-.panel--musical .range-pair { min-width: 0; }
-.panel--musical .range-pair .field__select { flex: 1 1 0; }
-
-.field--octave {
+/* -------------------------------------------------------------------- */
+/* Generator: columnas Onbeat / Offbeat                                  */
+/* -------------------------------------------------------------------- */
+.beat-columns {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.beat-col {
+  background: var(--panel-raised);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+  padding: 0.65rem 0.6rem;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 0.15rem 0.35rem;
-}
-.field--octave .field__label { grid-column: 1; }
-.field--octave .field__value { grid-column: 2; grid-row: 1; }
-.field--octave input[type='range'] {
-  grid-column: 1 / -1;
-  width: 100%;
+  gap: 0.5rem;
 }
 
-.field--dial {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+.beat-col--onbeat {
+  border-top: 2px solid var(--amber-dim);
+}
+
+.beat-col--offbeat {
+  border-top: 2px solid var(--teal-dim);
+}
+
+.beat-col__title {
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.beat-col__main {
+  display: flex;
+  justify-content: center;
+}
+
+.beat-col__row {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: center;
+}
+
+.beat-col--offbeat .knob__fill {
+  stroke: var(--teal);
+}
+
+.weights-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+/* -------------------------------------------------------------------- */
+/* Knob circular (SVG con anillo de progreso)                            */
+/* -------------------------------------------------------------------- */
+.knob {
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 0.12rem 0.3rem;
-  min-width: 0;
-}
-.field--dial .field__label { grid-column: 1; }
-.field--dial .field__value { grid-column: 2; grid-row: 1; }
-
-.knob-field .dial,
-.field--dial .dial {
-  grid-column: 1 / -1;
-  grid-row: 2;
-  justify-self: center;
-}
-
-.dial {
-  width: 38px;
-  height: 38px;
-  position: relative;
-  display: inline-block;
-  flex: 0 0 38px;
-  border-radius: 50%;
+  gap: 0.15rem;
   cursor: ns-resize;
-  touch-action: none;
   user-select: none;
 }
 
-.dial::before,
-.dial::after {
-  content: '';
-  position: absolute;
-  border-radius: 50%;
-  pointer-events: none;
-}
-.dial::before {
-  inset: 0;
-  background: conic-gradient(from 135deg, var(--amber) 0 var(--dial-progress), var(--line) var(--dial-progress) 75%, transparent 75%);
-  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
-  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
-}
-.dial::after {
-  inset: 5px;
-  z-index: 1;
-  background: linear-gradient(145deg, #393540, var(--panel-raised) 65%);
-  border: 1px solid var(--line);
-  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.08), 0 1px 2px rgba(0, 0, 0, 0.35);
-}
-.dial__indicator {
-  position: absolute;
-  z-index: 2;
-  top: 50%;
-  left: calc(50% - 1px);
-  width: 2px;
-  height: 10px;
-  border-radius: 2px;
-  background: var(--amber);
-  transform-origin: 50% 100%;
-  transform: rotate(var(--dial-angle));
-  pointer-events: none;
-}
-.dial .dial__input {
-  position: absolute;
-  z-index: 3;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  min-height: 0;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  opacity: 0;
-  cursor: inherit;
-  -webkit-appearance: none;
-  appearance: none;
-}
-.dial:focus-within {
-  outline: 2px solid var(--amber);
-  outline-offset: 2px;
+.knob__dial {
+  display: block;
 }
 
-@media (max-width: 480px) {
-  .panel--musical { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.knob--lg .knob__dial { width: 56px; height: 56px; }
+.knob--md .knob__dial { width: 44px; height: 44px; }
+.knob--sm .knob__dial { width: 34px; height: 34px; }
+.knob--xs .knob__dial { width: 26px; height: 26px; }
+
+.knob__track {
+  fill: none;
+  stroke: var(--line);
+  stroke-width: 3;
+}
+
+.knob__fill {
+  fill: none;
+  stroke: var(--amber);
+  stroke-width: 3;
+  stroke-linecap: round;
+  transform: rotate(-90deg);
+  transform-origin: 18px 18px;
+  transition: stroke-dasharray 0.05s linear;
+}
+
+.knob__value {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--text);
+}
+
+.knob--xs .knob__value {
+  font-size: 0.6rem;
+}
+
+.knob__label {
+  font-size: 0.6rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+/* -------------------------------------------------------------------- */
+/* Shape cycler (icono que cicla entre formas al click)                  */
+/* -------------------------------------------------------------------- */
+.shape-cycler {
+  width: 34px;
+  height: 34px;
+  padding: 6px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--amber);
+  cursor: pointer;
+}
+
+.shape-cycler:hover {
+  border-color: var(--amber);
+}
+
+.shape-cycler svg {
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* -------------------------------------------------------------------- */
+/* Lock Rhythm / Lock Pitch: botón-icono toggle                          */
+/* -------------------------------------------------------------------- */
+.lock-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  width: 56px;
+  padding: 0.4rem 0.3rem;
+  background: var(--panel-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.lock-btn__icon {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+}
+
+.lock-btn__label {
+  font-size: 0.6rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.lock-btn:hover {
+  border-color: var(--text-muted);
+}
+
+.lock-btn[aria-pressed='true'] {
+  background: var(--violet);
+  border-color: var(--violet);
+  color: #14101f;
 }

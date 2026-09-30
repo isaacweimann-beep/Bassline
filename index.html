@@ -56,111 +56,124 @@
   <div class="rack__columns">
 
     <!-- MUSICAL -->
-    <section class="panel panel--musical" data-name="musical">
-      <label class="field">
-        <span class="field__label">tónica</span>
-        <select id="rootNote" class="field__select"></select>
-      </label>
+    <section class="panel panel--musical" data-name="root">
+      <div class="tonal-layout">
+        <div class="tonal-layout__main">
+          <label class="field field--compact">
+            <span class="field__label">root</span>
+            <select id="rootNote" class="field__select"></select>
+          </label>
 
-      <label class="field">
-        <span class="field__label">escala</span>
-        <select id="scale" class="field__select"></select>
-      </label>
+          <label class="field field--compact">
+            <span class="field__label">scale</span>
+            <select id="scale" class="field__select"></select>
+          </label>
 
-      <label class="field field--octave">
-        <span class="field__label">octava base</span>
-        <span class="field__value" id="octaveValue">2</span>
-        <input type="range" id="octave" min="0" max="6" step="1" value="2" aria-label="Octava base" />
-      </label>
+          <label class="field field--compact">
+            <span class="field__label">rango</span>
+            <span class="range-pair">
+              <select id="octaveMin" class="field__select"></select>
+              <span class="range-pair__sep">a</span>
+              <select id="octaveMax" class="field__select"></select>
+            </span>
+          </label>
 
-      <label class="field">
-        <span class="field__label">rango de octavas</span>
-        <span class="range-pair">
-          <select id="octaveMin" class="field__select"></select>
-          <span class="range-pair__sep">a</span>
-          <select id="octaveMax" class="field__select"></select>
-        </span>
-      </label>
+          <label class="field field--compact">
+            <span class="field__label">pasos</span>
+            <select id="steps" class="field__select"></select>
+          </label>
 
-      <label class="field">
-        <span class="field__label">pasos</span>
-        <select id="steps" class="field__select"></select>
-      </label>
+          <label class="field field--compact">
+            <span class="field__label">rate</span>
+            <select id="rate" class="field__select"></select>
+          </label>
+        </div>
 
-      <label class="field">
-        <span class="field__label">rate</span>
-        <select id="rate" class="field__select"></select>
-      </label>
+        <div class="tonal-layout__octave">
+          <span class="field__label">octave</span>
+          <!-- El <select> sigue siendo el control real (misma lógica); el
+               stepper vertical es solo la piel visual, montado por knob-ui.js -->
+          <label class="field gen-legacy">
+            <select id="octave" class="field__select"></select>
+          </label>
+          <div id="mountOctaveStepper"></div>
+        </div>
+      </div>
     </section>
 
     <!-- GENERATOR -->
     <section class="panel panel--generator" data-name="generator">
-      <div class="knob-row">
-        <label class="knob-field">
-          <span class="field__label">density</span>
-          <input type="range" id="density" min="0" max="100" value="75" />
-          <span class="field__value" id="densityValue">75%</span>
-        </label>
+      <div class="beat-columns">
+        <div class="beat-col beat-col--onbeat">
+          <div class="beat-col__title">on beat</div>
+          <div class="beat-col__main" id="mountDensityKnob"></div>
+          <div class="beat-col__row">
+            <div id="mountRestKnobA"></div>
+            <div id="mountAccentKnobA"></div>
+          </div>
+          <div class="beat-col__row">
+            <div id="mountShapeA"></div>
+            <div id="mountAmountKnobA"></div>
+          </div>
+        </div>
 
-        <label class="knob-field">
-          <span class="field__label">complexity</span>
-          <input type="range" id="complexity" min="0" max="100" value="45" />
-          <span class="field__value" id="complexityValue">45%</span>
-        </label>
+        <div class="beat-col beat-col--offbeat">
+          <div class="beat-col__title">off beat</div>
+          <div class="beat-col__main" id="mountComplexityKnob"></div>
+          <div class="beat-col__row">
+            <div id="mountRestKnobB"></div>
+            <div id="mountAccentKnobB"></div>
+          </div>
+          <div class="beat-col__row">
+            <div id="mountShapeB"></div>
+            <div id="mountAmountKnobB"></div>
+          </div>
+        </div>
+      </div>
 
-        <label class="knob-field">
-          <span class="field__label">rests</span>
-          <input type="range" id="rests" min="0" max="100" value="10" />
-          <span class="field__value" id="restsValue">10%</span>
-        </label>
-
-        <label class="knob-field">
-          <span class="field__label">accent</span>
-          <input type="range" id="accentAmount" min="0" max="100" value="25" />
-          <span class="field__value" id="accentAmountValue">25%</span>
-        </label>
+      <!-- Controles reales: misma lógica, misma id, ocultos visualmente.
+           knob-ui.js monta los knobs de arriba leyendo/escribiendo éstos. -->
+      <div class="gen-legacy">
+        <input type="range" id="density" min="0" max="100" value="75" />
+        <span id="densityValue">75%</span>
+        <input type="range" id="complexity" min="0" max="100" value="45" />
+        <span id="complexityValue">45%</span>
+        <input type="range" id="rests" min="0" max="100" value="10" />
+        <span id="restsValue">10%</span>
+        <input type="range" id="accentAmount" min="0" max="100" value="25" />
+        <span id="accentAmountValue">25%</span>
+        <select id="variationShape" class="field__select"></select>
+        <input type="range" id="variationAmount" min="-100" max="100" value="0" />
+        <span id="variationAmountValue">0%</span>
       </div>
 
       <div class="subhead">pitch weights</div>
-      <div class="knob-row">
-        <label class="knob-field">
-          <span class="field__label">root</span>
-          <input type="range" id="weightRoot" min="0" max="100" value="40" title="Peso relativo (no hace falta que sumen 100)" />
-          <span class="field__value" id="weightRootValue">40</span>
-        </label>
-        <label class="knob-field">
-          <span class="field__label">fifth</span>
-          <input type="range" id="weightFifth" min="0" max="100" value="20" title="Peso relativo (no hace falta que sumen 100)" />
-          <span class="field__value" id="weightFifthValue">20</span>
-        </label>
-        <label class="knob-field">
-          <span class="field__label">third</span>
-          <input type="range" id="weightThird" min="0" max="100" value="15" title="Peso relativo (no hace falta que sumen 100)" />
-          <span class="field__value" id="weightThirdValue">15</span>
-        </label>
-        <label class="knob-field">
-          <span class="field__label">other</span>
-          <input type="range" id="weightOther" min="0" max="100" value="25" title="Peso relativo (no hace falta que sumen 100)" />
-          <span class="field__value" id="weightOtherValue">25</span>
-        </label>
+      <div class="weights-row">
+        <div id="mountWeightRoot"></div>
+        <div id="mountWeightFifth"></div>
+        <div id="mountWeightThird"></div>
+        <div id="mountWeightOther"></div>
       </div>
-
-      <div class="subhead">variator</div>
-      <div class="control-row">
-        <label class="field">
-          <span class="field__label">shape</span>
-          <select id="variationShape" class="field__select"></select>
-        </label>
-        <label class="field field--range field--grow">
-          <span class="field__label">amount</span>
-          <input type="range" id="variationAmount" min="-100" max="100" value="0" />
-          <span class="field__value" id="variationAmountValue">0%</span>
-        </label>
+      <div class="gen-legacy">
+        <input type="range" id="weightRoot" min="0" max="100" value="40" title="Peso relativo (no hace falta que sumen 100)" />
+        <span id="weightRootValue">40</span>
+        <input type="range" id="weightFifth" min="0" max="100" value="20" title="Peso relativo (no hace falta que sumen 100)" />
+        <span id="weightFifthValue">20</span>
+        <input type="range" id="weightThird" min="0" max="100" value="15" title="Peso relativo (no hace falta que sumen 100)" />
+        <span id="weightThirdValue">15</span>
+        <input type="range" id="weightOther" min="0" max="100" value="25" title="Peso relativo (no hace falta que sumen 100)" />
+        <span id="weightOtherValue">25</span>
       </div>
 
       <div class="control-row control-row--locks">
-        <button id="btnLockRhythm" type="button" class="btn btn--ghost btn--toggle" aria-pressed="false">lock rhythm</button>
-        <button id="btnLockPitch" type="button" class="btn btn--ghost btn--toggle" aria-pressed="false">lock pitch</button>
+        <button id="btnLockRhythm" type="button" class="lock-btn" aria-pressed="false" title="Lock Rhythm: congela qué pasos suenan al regenerar">
+          <svg viewBox="0 0 24 24" class="lock-btn__icon"><rect x="3" y="10" width="4" height="8"/><rect x="10" y="4" width="4" height="14"/><rect x="17" y="10" width="4" height="8"/></svg>
+          <span class="lock-btn__label">rhythm</span>
+        </button>
+        <button id="btnLockPitch" type="button" class="lock-btn" aria-pressed="false" title="Lock Pitch: congela la curva de tono al regenerar">
+          <svg viewBox="0 0 24 24" class="lock-btn__icon"><circle cx="6" cy="18" r="3"/><circle cx="16" cy="15" r="3"/><path d="M9 18V6l10-2v9" fill="none"/></svg>
+          <span class="lock-btn__label">pitch</span>
+        </button>
       </div>
 
       <div class="control-row control-row--seed">
@@ -205,6 +218,7 @@
 <script src="js/clock.js"></script>
 <script src="js/sequencer.js"></script>
 <script src="js/ui.js"></script>
+<script src="js/knob-ui.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>
