@@ -319,7 +319,11 @@ input[type='range']::-moz-range-thumb {
   padding: 0.6rem 1.1rem;
   border-radius: var(--radius);
   cursor: pointer;
-  transition: border-color 0.15s ease, color 0.15s ease;
+  transition: border-color 0.15s ease, color 0.15s ease, transform 0.1s ease-out;
+}
+
+.btn:active {
+  transform: scale(0.96);
 }
 
 .btn:hover {
@@ -811,6 +815,11 @@ input[type='range']::-moz-range-thumb {
   border-radius: var(--radius);
   color: var(--amber);
   cursor: pointer;
+  transition: transform 0.1s ease-out, border-color 0.15s ease;
+}
+
+.shape-cycler:active {
+  transform: scale(0.96);
 }
 
 .shape-cycler:hover {
@@ -842,6 +851,11 @@ input[type='range']::-moz-range-thumb {
   border-radius: var(--radius);
   color: var(--text-muted);
   cursor: pointer;
+  transition: transform 0.1s ease-out, border-color 0.15s ease;
+}
+
+.lock-btn:active {
+  transform: scale(0.96);
 }
 
 .lock-btn__icon {
