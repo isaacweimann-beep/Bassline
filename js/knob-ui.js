@@ -261,21 +261,21 @@
     const $ = (id) => document.getElementById(id);
     const dom = ui.dom;
 
-    // --- Onbeat / Offbeat: knob principal (density/complexity) ---
+    // --- Onbeat / Offbeat: knob principal (density/complexity, ya independientes) ---
     createKnob(dom.density, { size: 'lg', suffix: '%', mountTo: $('mountDensityKnob') });
     createKnob(dom.complexity, { size: 'lg', suffix: '%', mountTo: $('mountComplexityKnob') });
 
-    // --- Rest / Accent: un mismo parámetro, un knob espejado en cada columna ---
-    createKnob(dom.rests, { size: 'sm', suffix: '%', label: 'rest', mountTo: $('mountRestKnobA') });
-    createKnob(dom.rests, { size: 'sm', suffix: '%', label: 'rest', mountTo: $('mountRestKnobB') });
-    createKnob(dom.accentAmount, { size: 'sm', suffix: '%', label: 'accent', mountTo: $('mountAccentKnobA') });
-    createKnob(dom.accentAmount, { size: 'sm', suffix: '%', label: 'accent', mountTo: $('mountAccentKnobB') });
+    // --- Rest / Accent: un parámetro real por grupo, ya no espejados ---
+    createKnob(dom.restsOnbeat, { size: 'sm', suffix: '%', label: 'rest', mountTo: $('mountRestKnobA') });
+    createKnob(dom.restsOffbeat, { size: 'sm', suffix: '%', label: 'rest', mountTo: $('mountRestKnobB') });
+    createKnob(dom.accentOnbeat, { size: 'sm', suffix: '%', label: 'accent', mountTo: $('mountAccentKnobA') });
+    createKnob(dom.accentOffbeat, { size: 'sm', suffix: '%', label: 'accent', mountTo: $('mountAccentKnobB') });
 
-    // --- Shape / Amount: mismo Variator, ciclador de iconos + knob espejados ---
-    createShapeCycler(dom.variationShape, { mountTo: $('mountShapeA') });
-    createShapeCycler(dom.variationShape, { mountTo: $('mountShapeB') });
-    createKnob(dom.variationAmount, { size: 'xs', label: 'amt', mountTo: $('mountAmountKnobA') });
-    createKnob(dom.variationAmount, { size: 'xs', label: 'amt', mountTo: $('mountAmountKnobB') });
+    // --- Shape / Amount: un Variator real por grupo, ya no espejados ---
+    createShapeCycler(dom.variationShapeOnbeat, { mountTo: $('mountShapeA') });
+    createShapeCycler(dom.variationShapeOffbeat, { mountTo: $('mountShapeB') });
+    createKnob(dom.variationAmountOnbeat, { size: 'xs', label: 'amt', mountTo: $('mountAmountKnobA') });
+    createKnob(dom.variationAmountOffbeat, { size: 'xs', label: 'amt', mountTo: $('mountAmountKnobB') });
 
     // --- Pitch weights: 4 knobs chicos ---
     createKnob(dom.weightRoot, { size: 'sm', label: 'root', mountTo: $('mountWeightRoot') });

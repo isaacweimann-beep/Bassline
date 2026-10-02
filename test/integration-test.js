@@ -278,7 +278,7 @@ async function run() {
     const allActive = window.BG.Generator.generate({
       steps: 16, rate: '1/16', root: 0, scale: 'Natural Minor',
       octave: 2, octaveMin: 0, octaveMax: 0,
-      density: 1, complexity: 1, rests: 0, accentAmount: 0,
+      density: 1, complexity: 1, restsOnbeat: 0, restsOffbeat: 0, accentOnbeat: 0, accentOffbeat: 0,
       velocityBase: 100, velocityAccentBoost: 0, seed: 1,
     });
     seq.setPattern(allActive);
@@ -311,15 +311,21 @@ async function run() {
   const activeCount = () => snapshotSteps().filter((s) => s.active).length;
 
   seedInput.value = '4242';
-  setSlider(doc, 'complexity', 100);
-  setSlider(doc, 'rests', 0);
+  setSlider(doc, 'restsOnbeat', 0);
+  setSlider(doc, 'restsOffbeat', 0);
+  // complexity (Offbeat) es independiente: en 0, offbeat queda mudo también,
+  // así que con density=0 Y complexity=0 el patrón entero debería callarse.
+  setSlider(doc, 'complexity', 0);
   setSlider(doc, 'density', 0);
   await wait(60);
-  assert(activeCount() === 0, 'con density 0 no debería sonar ningún paso, sonaron ' + activeCount());
+  assert(activeCount() === 0, 'con density=0 y complexity=0 no debería sonar ningún paso, sonaron ' + activeCount());
   setSlider(doc, 'density', 100);
   await wait(60);
-  assert(activeCount() === 16, 'con density 100 (complexity 100, rests 0) deberían sonar los 16 pasos, sonaron ' + activeCount());
-  console.log('OK: mover el slider de density actualiza el patrón en vivo, sin apretar Generate (0 -> 0 pasos, 100 -> 16 pasos)');
+  assert(activeCount() === 8, 'con density=100 y complexity=0, solo los 8 pasos Onbeat deberían sonar (Offbeat sigue mudo), sonaron ' + activeCount());
+  setSlider(doc, 'complexity', 100);
+  await wait(60);
+  assert(activeCount() === 16, 'con density=100 y complexity=100 deberían sonar los 16 pasos, sonaron ' + activeCount());
+  console.log('OK: density y complexity actualizan el patrón en vivo de forma independiente (0+0 -> 0 pasos, 100+0 -> 8 pasos onbeat, 100+100 -> 16 pasos)');
 
   setSlider(doc, 'density', 40);
   await wait(60);
@@ -354,7 +360,7 @@ async function run() {
   const seq2 = window.BG.Sequencer.createSequencer(stub2);
   const genSteps = (steps, seed) => window.BG.Generator.generate({
     steps, rate: '1/16', root: 0, scale: 'Natural Minor', octave: 2, octaveMin: 0, octaveMax: 0,
-    density: 1, complexity: 1, rests: 0, accentAmount: 0, velocityBase: 100, velocityAccentBoost: 0, seed,
+    density: 1, complexity: 1, restsOnbeat: 0, restsOffbeat: 0, accentOnbeat: 0, accentOffbeat: 0, velocityBase: 100, velocityAccentBoost: 0, seed,
   });
   seq2.setPattern(genSteps(16, 1));
   seq2.start();
@@ -415,7 +421,8 @@ async function run() {
   setSlider(doc, 'weightOther', 0);
   setSlider(doc, 'density', 90);
   setSlider(doc, 'complexity', 90);
-  setSlider(doc, 'rests', 0);
+  setSlider(doc, 'restsOnbeat', 0);
+  setSlider(doc, 'restsOffbeat', 0);
   seedInput.value = '8080';
   setSelect(doc, 'rootNote', 0); // C
   await wait(60);
@@ -434,20 +441,20 @@ async function run() {
   // --- Variator: regresión (none/0 no cambia nada) ---
   const baseGenParams = {
     steps: 16, rate: '1/16', root: 0, scale: 'Natural Minor', octave: 2, octaveMin: -1, octaveMax: 1,
-    density: 0.75, complexity: 0.5, rests: 0.1, accentAmount: 0.25,
+    density: 0.75, complexity: 0.5, restsOnbeat: 0.1, restsOffbeat: 0.1, accentOnbeat: 0.25, accentOffbeat: 0.25,
     velocityBase: 100, velocityAccentBoost: 20, seed: 'variator-regression',
   };
   const withoutVariator = window.BG.Generator.generate(baseGenParams);
-  const withNoneExplicit = window.BG.Generator.generate(Object.assign({}, baseGenParams, { variationShape: 'none', variationAmount: 0 }));
+  const withNoneExplicit = window.BG.Generator.generate(Object.assign({}, baseGenParams, { variationShapeOnbeat: 'none', variationShapeOffbeat: 'none', variationAmountOnbeat: 0, variationAmountOffbeat: 0 }));
   assert(JSON.stringify(withoutVariator) === JSON.stringify(withNoneExplicit), 'con variationShape "none" o sin especificarlo, el patrón debería ser idéntico');
   console.log('OK: sin Variator (o con shape "none"), la generación no cambió');
 
   // --- Variator: "pulse" + amount 100% es matemáticamente exacto ---
   const pulsePattern = window.BG.Generator.generate({
     steps: 16, rate: '1/16', root: 0, scale: 'Chromatic', octave: 2, octaveMin: 0, octaveMax: 0,
-    density: 0.6, complexity: 1, rests: 0, accentAmount: 0,
+    density: 0.6, complexity: 1, restsOnbeat: 0, restsOffbeat: 0, accentOnbeat: 0, accentOffbeat: 0,
     velocityBase: 100, velocityAccentBoost: 0, seed: 'pulse-test',
-    variationShape: 'pulse', variationAmount: 1,
+    variationShapeOnbeat: 'pulse', variationShapeOffbeat: 'pulse', variationAmountOnbeat: 1, variationAmountOffbeat: 1,
   });
   assert(pulsePattern.active.slice(0, 8).every((a) => a === false), 'con shape "pulse" y amount 100%, la primera mitad debería quedar en silencio total');
   assert(pulsePattern.active.slice(8, 16).every((a) => a === true), 'con shape "pulse" y amount 100%, la segunda mitad debería sonar completa');
@@ -457,10 +464,13 @@ async function run() {
   setSelect(doc, 'scale', 'Chromatic');
   setSlider(doc, 'density', 60);
   setSlider(doc, 'complexity', 100);
-  setSlider(doc, 'rests', 0);
+  setSlider(doc, 'restsOnbeat', 0);
+  setSlider(doc, 'restsOffbeat', 0);
   seedInput.value = 'pulse-ui-test';
-  setSelect(doc, 'variationShape', 'pulse');
-  setSlider(doc, 'variationAmount', 100);
+  setSelect(doc, 'variationShapeOnbeat', 'pulse');
+  setSelect(doc, 'variationShapeOffbeat', 'pulse');
+  setSlider(doc, 'variationAmountOnbeat', 100);
+  setSlider(doc, 'variationAmountOffbeat', 100);
   await wait(60);
 
   const uiPulseSnapshot = snapshotSteps();
@@ -468,8 +478,10 @@ async function run() {
     'el Variator debería funcionar en vivo desde la UI, sin apretar Generate');
   console.log('OK: el Variator "pulse" funciona en vivo desde los controles de la UI');
 
-  setSelect(doc, 'variationShape', 'none');
-  setSlider(doc, 'variationAmount', 0);
+  setSelect(doc, 'variationShapeOnbeat', 'none');
+  setSelect(doc, 'variationShapeOffbeat', 'none');
+  setSlider(doc, 'variationAmountOnbeat', 0);
+  setSlider(doc, 'variationAmountOffbeat', 0);
   setSelect(doc, 'scale', 'Natural Minor');
 
   // --- Slots de patrón ---
@@ -518,30 +530,43 @@ async function run() {
   await wait(60);
   console.log('OK: el knob visual de Onbeat mueve el mismo #density de siempre (' + densityBefore + ' -> ' + densityAfter + '), incluyendo la regeneración en vivo');
 
-  // --- Rest: un solo parámetro real, dos knobs espejados (uno por columna) ---
-  const restsInput = doc.getElementById('rests');
+  // --- Onbeat/Offbeat independientes: motor puro, caso antes IMPOSIBLE ---
+  const offbeatOnlyPattern = window.BG.Generator.generate({
+    steps: 16, rate: '1/16', root: 0, scale: 'Chromatic', octave: 2, octaveMin: 0, octaveMax: 0,
+    density: 0, complexity: 1, restsOnbeat: 0, restsOffbeat: 0, accentOnbeat: 0, accentOffbeat: 0,
+    velocityBase: 100, velocityAccentBoost: 0, seed: 'offbeat-only',
+  });
+  const onbeatActive = offbeatOnlyPattern.active.filter((a, i) => i % 2 === 0);
+  const offbeatActive = offbeatOnlyPattern.active.filter((a, i) => i % 2 === 1);
+  assert(onbeatActive.every((a) => a === false), 'con density=0, ningún paso Onbeat debería sonar');
+  assert(offbeatActive.every((a) => a === true), 'con complexity=1 (independiente de density), Offbeat debería sonar completo igual');
+  console.log('OK: Offbeat puede sonar más denso que Onbeat (antes imposible: offbeat = density×complexity, con density=0 offbeat también daba 0 sí o sí)');
+
+  // --- Rest: ahora es UN parámetro por grupo — mover Onbeat NO debe tocar Offbeat ---
+  const restOnbeatInput = doc.getElementById('restsOnbeat');
+  const restOffbeatInput = doc.getElementById('restsOffbeat');
   const restKnobA = doc.querySelector('#mountRestKnobA .knob');
   const restKnobB = doc.querySelector('#mountRestKnobB .knob');
   assert(restKnobA && restKnobB, 'debería haber un knob de Rest en cada columna (Onbeat y Offbeat)');
-  const restBefore = Number(restsInput.value);
-  dragKnob(restKnobA, 200, 140); // arriba = sube el valor
-  const restAfterDragA = Number(restsInput.value);
-  assert(restAfterDragA !== restBefore, 'arrastrar el knob de Rest de la columna Onbeat debería cambiar el #rests real');
-  const restKnobBValueText = restKnobB.querySelector('.knob__value').textContent;
-  assert(restKnobBValueText === String(Math.round(restAfterDragA)) + '%', 'el knob espejado de Rest en la columna Offbeat debería mostrar el mismo valor que acaba de cambiar en la columna Onbeat (están conectados al mismo #rests), mostró: ' + restKnobBValueText);
-  console.log('OK: Rest es un solo parámetro con dos knobs espejados — mover uno actualiza el otro (' + restBefore + ' -> ' + restAfterDragA + ')');
+  const restOnbeatBefore = Number(restOnbeatInput.value);
+  const restOffbeatBefore = Number(restOffbeatInput.value);
+  dragKnob(restKnobA, 200, 140); // arriba = sube el valor, solo en la columna Onbeat
+  assert(Number(restOnbeatInput.value) !== restOnbeatBefore, 'arrastrar el knob de Rest de Onbeat debería cambiar #restsOnbeat');
+  assert(Number(restOffbeatInput.value) === restOffbeatBefore, 'mover el Rest de Onbeat NO debería tocar #restsOffbeat (son independientes)');
+  console.log('OK: Rest es independiente por grupo — mover Onbeat no mueve Offbeat (' + restOnbeatBefore + ' -> ' + restOnbeatInput.value + ', offbeat se mantuvo en ' + restOffbeatInput.value + ')');
 
-  // --- Shape: el ciclador de iconos avanza el mismo #variationShape de siempre ---
-  const shapeSelect = doc.getElementById('variationShape');
+  // --- Shape: ahora es UN Variator por grupo — ciclar Onbeat NO debe tocar Offbeat ---
+  const shapeOnbeatSelect = doc.getElementById('variationShapeOnbeat');
+  const shapeOffbeatSelect = doc.getElementById('variationShapeOffbeat');
   const shapeButtonA = doc.querySelector('#mountShapeA .shape-cycler');
   const shapeButtonB = doc.querySelector('#mountShapeB .shape-cycler');
   assert(shapeButtonA && shapeButtonB, 'debería haber un ciclador de shape en cada columna');
-  const shapeBefore = shapeSelect.value;
+  const shapeOnbeatBefore = shapeOnbeatSelect.value;
+  const shapeOffbeatBefore = shapeOffbeatSelect.value;
   shapeButtonA.click();
-  const shapeAfter = shapeSelect.value;
-  assert(shapeAfter !== shapeBefore, 'click en el ciclador de shape debería avanzar el #variationShape real (antes: ' + shapeBefore + ', después: ' + shapeAfter + ')');
-  assert(shapeButtonB.getAttribute('aria-label') === 'shape: ' + shapeAfter, 'el ciclador espejado de la otra columna debería reflejar el mismo shape actualizado');
-  console.log('OK: el ciclador de shape (icono) avanza el mismo #variationShape de siempre (' + shapeBefore + ' -> ' + shapeAfter + '), y el espejo se actualiza solo');
+  assert(shapeOnbeatSelect.value !== shapeOnbeatBefore, 'click en el ciclador de Onbeat debería avanzar #variationShapeOnbeat');
+  assert(shapeOffbeatSelect.value === shapeOffbeatBefore, 'click en el ciclador de Onbeat NO debería tocar #variationShapeOffbeat (son independientes)');
+  console.log('OK: Shape es independiente por grupo — ciclar Onbeat no mueve Offbeat (' + shapeOnbeatBefore + ' -> ' + shapeOnbeatSelect.value + ', offbeat se mantuvo en "' + shapeOffbeatSelect.value + '")');
 
   // --- Octava: el stepper vertical setea el mismo #octave de siempre ---
   const octaveSelect = doc.getElementById('octave');

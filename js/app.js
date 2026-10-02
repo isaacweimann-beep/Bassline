@@ -177,11 +177,13 @@
 
     // Regeneración en vivo: sliders del generator, selects musicales y seed.
     [
-      ui.dom.density, ui.dom.complexity, ui.dom.rests, ui.dom.accentAmount, ui.dom.seed,
+      ui.dom.density, ui.dom.complexity, ui.dom.seed,
+      ui.dom.restsOnbeat, ui.dom.restsOffbeat, ui.dom.accentOnbeat, ui.dom.accentOffbeat,
       ui.dom.weightRoot, ui.dom.weightFifth, ui.dom.weightThird, ui.dom.weightOther,
-      ui.dom.variationAmount,
+      ui.dom.variationAmountOnbeat, ui.dom.variationAmountOffbeat,
     ].forEach((el) => el.addEventListener('input', scheduleLiveRegenerate));
-    ui.dom.variationShape.addEventListener('change', scheduleLiveRegenerate);
+    ui.dom.variationShapeOnbeat.addEventListener('change', scheduleLiveRegenerate);
+    ui.dom.variationShapeOffbeat.addEventListener('change', scheduleLiveRegenerate);
     [ui.dom.rootNote, ui.dom.scale, ui.dom.octave, ui.dom.octaveMin, ui.dom.octaveMax, ui.dom.steps, ui.dom.rate]
       .forEach((el) => el.addEventListener('change', scheduleLiveRegenerate));
 

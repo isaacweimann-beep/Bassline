@@ -30,7 +30,11 @@
    *
    * @param {Object} params
    *   steps, rate, root, scale, octave, octaveMin, octaveMax,
-   *   density (0-1), complexity (0-1), rests (0-1), accentAmount (0-1),
+   *   density (0-1, On Beat), complexity (0-1, Off Beat — independiente,
+   *   ya no es un multiplicador de density),
+   *   restsOnbeat, restsOffbeat, accentOnbeat, accentOffbeat (0-1 cada uno),
+   *   variationShapeOnbeat, variationShapeOffbeat,
+   *   variationAmountOnbeat, variationAmountOffbeat (-1..1 cada uno),
    *   velocityBase (0-127), velocityAccentBoost (0-127), seed,
    *   lockRhythm, lockPitch (booleans, opcionales),
    *   previousPattern (Pattern anterior, opcional, requerido si se usa lock)
@@ -103,37 +107,46 @@
   /**
    * Decide qué pasos suenan (active), su velocity, gate y accent.
    *
-   * Concepto tomado del manual de Bassline Generator: los pasos "fuertes"
-   * (onbeat, cada 1/8) y los pasos "débiles/sincopados" (offbeat, los
-   * 1/16 intermedios) se controlan con densidades independientes:
-   *   - density        => probabilidad base en pasos fuertes (onbeat)
-   *   - density*complexity => probabilidad en pasos débiles (offbeat)
-   * `rests` resta probabilidad de forma pareja a todo el patrón, como
-   * un control independiente para "dejar más aire".
+   * ON BEAT (pasos fuertes, cada 1/8) y OFF BEAT (los pasos sincopados
+   * intermedios) son dos grupos totalmente independientes: cada uno tiene
+   * su propia probabilidad base, su propio Rest, Accent, y su propio
+   * Variator (shape + amount). Nada de un grupo influye en el otro.
    *
-   * El Variator (variationShape + variationAmount) multiplica esa
-   * probabilidad base según la posición del paso en el ciclo, para que
-   * la densidad varíe sola a lo largo del patrón en vez de ser pareja.
-   * A diferencia de Reason, acá hay un solo Variator para todo el patrón
-   * (no uno separado para onbeat y otro para offbeat).
+   *   - density (On Beat) / complexity (Off Beat): probabilidad base de
+   *     cada grupo, 0-1 cada una. OJO: complexity ya NO es un multiplicador
+   *     de density (antes: offbeat = density*complexity) — ahora Off Beat
+   *     puede sonar más denso que On Beat si así se lo configura.
+   *   - restsOnbeat / restsOffbeat: resta probabilidad dentro de cada grupo.
+   *   - accentOnbeat / accentOffbeat: probabilidad de acento, por grupo.
+   *   - variationShapeOnbeat/Offbeat + variationAmountOnbeat/Offbeat: cada
+   *     grupo tiene su propio Variator, modulando solo sus propios pasos.
    */
   function generateRhythm(pattern, params, rng) {
-    const density = clamp01(params.density);
-    const complexity = clamp01(params.complexity);
-    const rests = clamp01(params.rests);
-    const accentAmount = clamp01(params.accentAmount);
-    const variationShape = params.variationShape || 'none';
-    const variationAmount = params.variationAmount != null ? params.variationAmount : 0; // -1..1
+    const densityOnbeat = clamp01(params.density);
+    const densityOffbeat = clamp01(params.complexity);
+    const restsOnbeat = clamp01(params.restsOnbeat);
+    const restsOffbeat = clamp01(params.restsOffbeat);
+    const accentOnbeat = clamp01(params.accentOnbeat);
+    const accentOffbeat = clamp01(params.accentOffbeat);
+    const shapeOnbeat = params.variationShapeOnbeat || 'none';
+    const shapeOffbeat = params.variationShapeOffbeat || 'none';
+    const amountOnbeat = params.variationAmountOnbeat != null ? params.variationAmountOnbeat : 0;
+    const amountOffbeat = params.variationAmountOffbeat != null ? params.variationAmountOffbeat : 0;
     const velocityBase = params.velocityBase != null ? params.velocityBase : 96;
     const velocityAccentBoost = params.velocityAccentBoost != null ? params.velocityAccentBoost : 24;
 
     for (let i = 0; i < pattern.steps; i++) {
       const isOnbeat = i % 2 === 0;
-      const baseProb = isOnbeat ? density : density * complexity;
+
+      const baseProb = isOnbeat ? densityOnbeat : densityOffbeat;
+      const rests = isOnbeat ? restsOnbeat : restsOffbeat;
+      const accentAmount = isOnbeat ? accentOnbeat : accentOffbeat;
+      const shape = isOnbeat ? shapeOnbeat : shapeOffbeat;
+      const amount = isOnbeat ? amountOnbeat : amountOffbeat;
 
       const phase = i / pattern.steps;
-      const shapeValue = variatorShapeValue(variationShape, phase);
-      const variedProb = baseProb * (1 + variationAmount * shapeValue);
+      const shapeValue = variatorShapeValue(shape, phase);
+      const variedProb = baseProb * (1 + amount * shapeValue);
 
       const finalProb = clamp01(variedProb * (1 - rests));
 

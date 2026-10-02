@@ -131,20 +131,23 @@
         </div>
       </div>
 
-      <!-- Controles reales: misma lógica, misma id, ocultos visualmente.
-           knob-ui.js monta los knobs de arriba leyendo/escribiendo éstos. -->
+      <!-- Controles reales: misma lógica, ocultos visualmente. Cada knob de
+           arriba lee/escribe el suyo propio — ya no hay dos knobs
+           compartiendo un mismo input (On Beat y Off Beat son independientes). -->
       <div class="gen-legacy">
         <input type="range" id="density" min="0" max="100" value="75" />
         <span id="densityValue">75%</span>
         <input type="range" id="complexity" min="0" max="100" value="45" />
         <span id="complexityValue">45%</span>
-        <input type="range" id="rests" min="0" max="100" value="10" />
-        <span id="restsValue">10%</span>
-        <input type="range" id="accentAmount" min="0" max="100" value="25" />
-        <span id="accentAmountValue">25%</span>
-        <select id="variationShape" class="field__select"></select>
-        <input type="range" id="variationAmount" min="-100" max="100" value="0" />
-        <span id="variationAmountValue">0%</span>
+
+        <input type="range" id="restsOnbeat" min="0" max="100" value="10" />
+        <input type="range" id="restsOffbeat" min="0" max="100" value="10" />
+        <input type="range" id="accentOnbeat" min="0" max="100" value="25" />
+        <input type="range" id="accentOffbeat" min="0" max="100" value="25" />
+        <select id="variationShapeOnbeat" class="field__select"></select>
+        <select id="variationShapeOffbeat" class="field__select"></select>
+        <input type="range" id="variationAmountOnbeat" min="-100" max="100" value="0" />
+        <input type="range" id="variationAmountOffbeat" min="-100" max="100" value="0" />
       </div>
 
       <div class="subhead">pitch weights</div>

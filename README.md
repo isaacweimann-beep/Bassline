@@ -24,6 +24,12 @@ navegador: el sonido sale siempre de tu hardware.
 - Scheduler MIDI con look-ahead scheduling (clock de referencia de alta resolución + agendado anticipado de Note On/Off), para timing estable.
 - Selector de dispositivo/canal MIDI, con apagado de seguridad de todas las notas activas al parar, cambiar de patrón, cambiar de dispositivo/canal o cerrar la pestaña.
 
+## On Beat / Off Beat independientes
+
+Rest, Accent, Shape y Amount dejaron de ser parámetros compartidos (espejados entre columnas) y pasaron a ser **ocho parámetros reales**, cuatro por grupo: `restsOnbeat`/`restsOffbeat`, `accentOnbeat`/`accentOffbeat`, `variationShapeOnbeat`/`variationShapeOffbeat`, `variationAmountOnbeat`/`variationAmountOffbeat`. Moverlos en una columna ya no afecta a la otra.
+
+**Cambio de comportamiento musical importante:** `complexity` (el knob Off Beat) dejó de ser un multiplicador de `density` (antes: offbeat = density × complexity, por lo que Off Beat nunca podía sonar más denso que On Beat). Ahora es una probabilidad propia e independiente — Off Beat puede sonar solo, más denso que On Beat, o lo que haga falta. Patrones generados con el mismo seed que antes van a sonar distinto a partir de este cambio.
+
 ## Rediseño visual — Etapa 1 (knobs, Onbeat/Offbeat, octava)
 
 Primera etapa de un rediseño puramente visual, inspirado en la organización del Bassline Generator de Reason (no en su código ni gráficos, que son propietarios). **Ningún parámetro, algoritmo ni comportamiento cambió** — solo la presentación.
